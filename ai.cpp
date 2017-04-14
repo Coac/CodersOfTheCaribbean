@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <math.h>
 
 using namespace std;
 
@@ -22,6 +23,26 @@ public:
         this->x = x;
         this->y = y;
     }
+
+    int getY() const {
+        return this->y;
+    }
+
+    void setY(int y) {
+        this->y = y;
+    }
+
+    int getX() const {
+        return this->x;
+    }
+
+    void setX(int x) {
+        this->x = x;
+    }
+
+    int distanceTo(Coord *coord) {
+        return abs(this->getX() - coord->getX()) + abs(this->getY() - coord->getY());
+    }
 };
 
 class Entity {
@@ -36,9 +57,17 @@ public:
         this->type = type;
         this->position = new Coord(x, y);
     }
+
+    Coord *getPosition() const {
+        return position;
+    }
+
+    int distanceTo(Entity entity) {
+        return this->position->distanceTo(entity.getPosition());
+    }
 };
 
-class Ship : Entity {
+class Ship : public Entity {
 private:
     int orientation;
     int speed;
@@ -58,7 +87,7 @@ public:
     }
 };
 
-class RumBarrel : Entity {
+class RumBarrel : public Entity {
 private:
     int health;
 
@@ -106,13 +135,24 @@ int main() {
             }
 
         }
-        for (int i = 0; i < myShipCount; i++) {
 
-            // Write an action using cout. DON'T FORGET THE "<< endl"
-            // To debug: cerr << "Debug messages..." << endl;
+        for (auto &ship : allyShips) {
+            int min = 999;
+            RumBarrel *closestBarrel = nullptr;
+            for (auto &barrel : rumBarrels) {
+                int dist = ship->distanceTo(*barrel);
 
-            cout << "MOVE 11 10" << endl; // Any valid action, such as "WAIT" or "MOVE x y"
+                if (dist < min) {
+                    min = dist;
+                    closestBarrel = barrel;
+                }
+
+            }
+
+            cout << "MOVE " << closestBarrel->getPosition()->getX() << " " << closestBarrel->getPosition()->getY() << endl;
+
         }
+
     }
 }
 
