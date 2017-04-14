@@ -65,6 +65,24 @@ public:
     int distanceTo(Entity entity) {
         return this->position->distanceTo(entity.getPosition());
     }
+
+    Entity *getClosest(const vector<Entity *> &entities, int *closestDistance = nullptr) {
+        int min = 999;
+        Entity *closest = nullptr;
+        for (auto &entity : entities) {
+            int dist = this->distanceTo(*entity);
+
+            if (dist < min) {
+                min = dist;
+                closest = entity;
+            }
+
+        }
+        if (closestDistance) {
+            *closestDistance = min;
+        }
+        return closest;
+    }
 };
 
 class Ship : public Entity {
@@ -139,20 +157,21 @@ public:
 
     void sendOutputs() {
         for (auto &ship : allyShips) {
-            int min = 999;
-            RumBarrel *closestBarrel = nullptr;
-            for (auto &barrel : rumBarrels) {
-                int dist = ship->distanceTo(*barrel);
+            vector<Entity *> barrels(rumBarrels.begin(), rumBarrels.end());
+            Entity *closestBarrel = ship->getClosest(barrels);
 
-                if (dist < min) {
-                    min = dist;
-                    closestBarrel = barrel;
-                }
+            vector<Entity *> enemies(enemyShips.begin(), enemyShips.end());
+            int enemyDist = 999;
+            Entity *closestEnemy = ship->getClosest(enemies, &enemyDist);
+            cerr << enemyDist;
 
+            if(enemyDist < 10) {
+                cout << "FIRE " << closestEnemy->getPosition()->getX() << " " << closestEnemy->getPosition()->getY()
+                     << endl;
+            } else {
+                cout << "MOVE " << closestBarrel->getPosition()->getX() << " " << closestBarrel->getPosition()->getY()
+                     << endl;
             }
-
-            cout << "MOVE " << closestBarrel->getPosition()->getX() << " " << closestBarrel->getPosition()->getY()
-                 << endl;
 
         }
     }
