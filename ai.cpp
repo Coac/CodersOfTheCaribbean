@@ -98,13 +98,13 @@ public:
 };
 
 
-int main() {
+class GameState {
+public:
+    vector<RumBarrel *> rumBarrels;
+    vector<Ship *> allyShips;
+    vector<Ship *> enemyShips;
 
-    while (1) {
-        vector<RumBarrel *> rumBarrels;
-        vector<Ship *> allyShips;
-        vector<Ship *> enemyShips;
-
+    void parseInputs() {
         int myShipCount; // the number of remaining ships
         cin >> myShipCount;
         cin.ignore();
@@ -135,7 +135,9 @@ int main() {
             }
 
         }
+    }
 
+    void sendOutputs() {
         for (auto &ship : allyShips) {
             int min = 999;
             RumBarrel *closestBarrel = nullptr;
@@ -149,10 +151,19 @@ int main() {
 
             }
 
-            cout << "MOVE " << closestBarrel->getPosition()->getX() << " " << closestBarrel->getPosition()->getY() << endl;
+            cout << "MOVE " << closestBarrel->getPosition()->getX() << " " << closestBarrel->getPosition()->getY()
+                 << endl;
 
         }
+    }
+};
 
+int main() {
+
+    while (1) {
+        GameState *state = new GameState();
+        state->parseInputs();
+        state->sendOutputs();
     }
 }
 
