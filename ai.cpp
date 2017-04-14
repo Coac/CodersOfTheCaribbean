@@ -18,6 +18,19 @@ private:
     int x;
     int y;
 
+    int DIRECTIONS_EVEN[6][2] = {{1,  0},
+                                 {0,  -1},
+                                 {-1, -1},
+                                 {-1, 0},
+                                 {-1, 1},
+                                 {0,  1}};
+    int DIRECTIONS_ODD[6][2] = {{1,  0},
+                                {1,  -1},
+                                {0,  -1},
+                                {-1, 0},
+                                {0,  1},
+                                {1,  1}};
+
 public:
     Coord(int x, int y) {
         this->x = x;
@@ -38,6 +51,19 @@ public:
 
     void setX(int x) {
         this->x = x;
+    }
+
+    Coord *neighbor(int orientation) {
+        int newY, newX;
+        if (this->y % 2 == 1) {
+            newY = this->y + DIRECTIONS_ODD[orientation][1];
+            newX = this->x + DIRECTIONS_ODD[orientation][0];
+        } else {
+            newY = this->y + DIRECTIONS_EVEN[orientation][1];
+            newX = this->x + DIRECTIONS_EVEN[orientation][0];
+        }
+
+        return new Coord(newX, newY);
     }
 
     int distanceTo(Coord *coord) {
@@ -103,6 +129,10 @@ public:
     bool isAlly() {
         return owner == 1;
     }
+
+    int getOrientation() {
+        return orientation;
+    }
 };
 
 class RumBarrel : public Entity {
@@ -110,7 +140,7 @@ private:
     int health;
 
 public:
-    RumBarrel(int id, int x, int y, int health) : Entity(SHIP, id, x, y) {
+    RumBarrel(int id, int x, int y, int health) : Entity(BARREL, id, x, y) {
         this->health = health;
     }
 };
@@ -162,11 +192,12 @@ public:
 
             vector<Entity *> enemies(enemyShips.begin(), enemyShips.end());
             int enemyDist = 999;
-            Entity *closestEnemy = ship->getClosest(enemies, &enemyDist);
+            Ship *closestEnemy = (Ship *) ship->getClosest(enemies, &enemyDist);
             cerr << enemyDist;
 
-            if(enemyDist < 10) {
-                cout << "FIRE " << closestEnemy->getPosition()->getX() << " " << closestEnemy->getPosition()->getY()
+            if (enemyDist < 10) {
+                Coord *coord = closestEnemy->getPosition()->neighbor(closestEnemy->getOrientation());
+                cout << "FIRE " << coord->getX() << " " << coord->getY()
                      << endl;
             } else {
                 cout << "MOVE " << closestBarrel->getPosition()->getX() << " " << closestBarrel->getPosition()->getY()
