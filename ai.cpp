@@ -18,8 +18,32 @@ enum EntityType {
     SHIP, BARREL, MINE, CANNONBALL
 };
 
+class CubeCoordinate {
+public:
+    int x;
+    int y;
+    int z;
+
+    int directions[6][3] = {{1,  -1, 0},
+                            {+1, 0,  -1},
+                            {0,  +1, -1},
+                            {-1, +1, 0},
+                            {-1, 0,  +1},
+                            {0,  -1, +1}};
+
+    CubeCoordinate(int x, int y, int z) {
+        this->x = x;
+        this->y = y;
+        this->z = z;
+    }
+
+    int distanceTo(CubeCoordinate *dst) {
+        return (abs(x - dst->x) + abs(y - dst->y) + abs(z - dst->z)) / 2;
+    }
+};
+
 class Coord {
-private:
+public:
     int x;
     int y;
 
@@ -36,7 +60,6 @@ private:
                                 {0,  1},
                                 {1,  1}};
 
-public:
     Coord(int x, int y) {
         this->x = x;
         this->y = y;
@@ -71,18 +94,28 @@ public:
         return new Coord(newX, newY);
     }
 
-    int distanceTo(Coord *coord) {
+    CubeCoordinate* toCubeCoordinate() {
+        int xp = x - (y - (y & 1)) / 2;
+        int zp = y;
+        int yp = -(xp + zp);
+        return new CubeCoordinate(xp, yp, zp);
+    }
+
+    int distanceTo2(Coord *coord) {
         return abs(this->getX() - coord->getX()) + abs(this->getY() - coord->getY());
+    }
+
+    int distanceTo(Coord *dst) {
+        return this->toCubeCoordinate()->distanceTo(dst->toCubeCoordinate());
     }
 };
 
 class Entity {
-private:
+public:
     int id;
     EntityType type;
     Coord *position;
 
-public:
     Entity(EntityType type, int id, int x, int y) {
         this->id = 0;
         this->type = type;
@@ -121,7 +154,7 @@ public:
 };
 
 class Ship : public Entity {
-private:
+public:
     int orientation;
     int speed;
     int health;
@@ -129,7 +162,6 @@ private:
     int cannonCooldown;
     int mineCooldown;
 
-public:
     Ship(int id, int x, int y, int orientation, int speed, int health, int owner) : Entity(SHIP, id, x, y) {
         this->orientation = orientation;
         this->speed = speed;
@@ -251,13 +283,29 @@ public:
             vector<Entity *> enemies(enemyShips.begin(), enemyShips.end());
             int enemyDist = 999;
             Ship *closestEnemy = (Ship *) ship->getClosest(enemies, &enemyDist);
-
+            cerr << enemyDist << endl;
             if (enemyDist < 10 && !ship->isCannonOnCd()) {
-                Coord *coord = closestEnemy->getPosition()->neighbor(closestEnemy->getOrientation());
-                ship->fire(coord->getX(), coord->getY());
+                cerr << closestEnemy->position->x << " " << closestEnemy->position->y;
+                if (closestEnemy->speed == 0) {
+                    ship->fire(closestEnemy->getPosition()->getX(), closestEnemy->getPosition()->getY());
+                } else {
+                    Coord *coord = closestEnemy->getPosition()->neighbor(closestEnemy->getOrientation());
+                    if (closestEnemy->speed == 1) {
+                        ship->fire(coord->getX(), coord->getY());
+                    } else {
+                        Coord *coord2 = coord->neighbor(closestEnemy->getOrientation());
+                        ship->fire(coord2->getX(), coord2->getY());
+                    }
+                }
+
             } else {
-                cout << "MOVE " << closestBarrel->getPosition()->getX() << " " << closestBarrel->getPosition()->getY()
-                     << endl;
+                if (closestBarrel == nullptr) {
+                    cout << "MOVE 0 0" << endl;
+                } else {
+                    cout << "MOVE " << closestBarrel->getPosition()->getX() << " "
+                         << closestBarrel->getPosition()->getY() << endl;
+                }
+
             }
 
         }
