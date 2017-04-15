@@ -8,8 +8,10 @@
 #include <vector>
 #include <algorithm>
 #include <math.h>
+#include <chrono>
 
 using namespace std;
+using namespace std::chrono;
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
@@ -289,7 +291,6 @@ public:
             Ship *closestEnemy = (Ship *) ship->getClosest(enemies, &enemyDist);
             cerr << enemyDist << endl;
             Coord *coordtest = closestEnemy->getPosition()->neighbor(closestEnemy->getOrientation(), 3);
-            cerr << "coordtest " << coordtest->x << " " << coordtest->y;
             if (enemyDist < 15 && !ship->isCannonOnCd()) {
                 cerr << closestEnemy->position->x << " " << closestEnemy->position->y << endl;
                 if (closestEnemy->speed == 0) {
@@ -322,9 +323,15 @@ int main() {
     GameState *state = new GameState();
 
     while (1) {
+        high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
         state->parseInputs();
         state->decrementCooldown();
         state->sendOutputs();
+
+        high_resolution_clock::time_point t2 = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>( t2 - t1 ).count();
+        cerr << duration << " ms";
     }
 }
 
