@@ -202,6 +202,7 @@ public:
     int owner;
     int cannonCooldown;
     int mineCooldown;
+    bool isDead = false;
 
     Ship(int id, int x, int y, int orientation, int speed, int health, int owner) : Entity(SHIP, id, x, y) {
         this->orientation = orientation;
@@ -225,6 +226,9 @@ public:
         this->speed = ship.speed;
         this->health = ship.health;
         this->owner = ship.owner;
+
+        this->position = ship.position;
+        this->isDead = false;
     }
 
     void decrementCooldown() {
@@ -308,6 +312,10 @@ public:
         mineCount = 0;
         cannonBallCount = 0;
 
+        for (int i = 0; i < allyShipCount; ++i) {
+            allyShips[i]->isDead = true;
+        }
+
         int myShipCount; // the number of remaining ships
         cin >> myShipCount;
         cin.ignore();
@@ -367,13 +375,11 @@ public:
         for (int i = 0; i < allyShipCount; ++i) {
             Ship *ship = allyShips[i];
 
-            Entity *closestBarrel = ship->getClosestEntity((Entity **) rumBarrels, rumBarrelCount);
+            if (ship->isDead) continue;
 
             int enemyDist = 999;
-
             Ship *closestEnemy = (Ship *) Entity::getClosestEntity((Entity **) enemyShips, enemyShipCount, ship->bow(),
                                                                    &enemyDist);
-
             cerr << ship->getId() << " " << closestEnemy->getId() << " dist:" << enemyDist << endl;
             if (enemyDist < 15 && !ship->isCannonOnCd()) {
                 Coord *coord;
@@ -392,11 +398,36 @@ public:
                 }
                 ship->fire(coord->getX(), coord->getY());
             } else {
+                int barrelDist = 999;
+                Entity *closestBarrel = ship->getClosestEntity((Entity **) rumBarrels, rumBarrelCount, &barrelDist);
                 if (closestBarrel == nullptr) {
                     cout << "MOVE " << closestEnemy->getPosition()->y << " " << closestEnemy->getPosition()->y << endl;
                 } else {
-                    cout << "MOVE " << closestBarrel->getPosition()->getX() << " "
-                         << closestBarrel->getPosition()->getY() << endl;
+                    Coord *shipCoord = ship->position;
+                    Coord *fasterCoord = shipCoord->neighbor(ship->orientation, ship->speed + 1);
+                    Coord *portCoord = shipCoord->neighbor(ship->orientation, ship->speed)->neighbor(
+                            (ship->orientation + 1) % 6);
+                    Coord *starboardCoord = shipCoord->neighbor(ship->orientation, ship->speed)->neighbor(
+                            (ship->orientation == 0 ? 5 : ship->orientation - 1));
+
+                    int portDist = portCoord->distanceTo(closestBarrel->getPosition());
+                    int starDist = starboardCoord->distanceTo(closestBarrel->getPosition());
+                    int fastDist = fasterCoord->distanceTo(closestBarrel->getPosition());
+
+
+                    if (fasterCoord->isInsideMap() && fastDist <= starDist && fastDist <= portDist) {
+                        cout << "FASTER" << endl;
+                    } else if ((ship->speed > 0 || barrelDist == 1) && portCoord->isInsideMap() &&
+                               portDist <= starDist && portDist <= fastDist) {
+                        cout << "PORT" << endl;
+                    } else if ((ship->speed > 0 || barrelDist == 1) && starboardCoord->isInsideMap() &&
+                               starDist <= fastDist && starDist <= portDist) {
+                        cout << "STARBOARD" << endl;
+                    } else {
+                        cout << "MOVE " << closestBarrel->getPosition()->getX() << " "
+                             << closestBarrel->getPosition()->getY() << endl;
+                    }
+
                 }
 
             }
