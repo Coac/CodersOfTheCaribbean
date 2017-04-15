@@ -131,7 +131,7 @@ public:
     Coord *position;
 
     Entity(EntityType type, int id, int x, int y) {
-        this->id = 0;
+        this->id = id;
         this->type = type;
         this->position = new Coord(x, y);
     }
@@ -297,7 +297,6 @@ public:
             vector<Entity *> enemies(enemyShips.begin(), enemyShips.end());
             int enemyDist = 999;
             Ship *closestEnemy = (Ship *) ship->getClosest(enemies, &enemyDist);
-            cerr << enemyDist << endl;
             Coord *coordtest = closestEnemy->getPosition()->neighbor(closestEnemy->getOrientation(), 3);
             if (enemyDist < 15 && !ship->isCannonOnCd()) {
                 cerr << closestEnemy->position->x << " " << closestEnemy->position->y << endl;
