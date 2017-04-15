@@ -271,6 +271,18 @@ public:
     }
 };
 
+class CannonBall : public Entity {
+private:
+    int ownerEntityId;
+    int remainingTurns;
+
+public:
+    CannonBall(int id, int x, int y, int ownerEntityId, int remainingTurns) : Entity(CANNONBALL, id, x, y) {
+        this->ownerEntityId = ownerEntityId;
+        this->remainingTurns = remainingTurns;
+    }
+};
+
 class GameState {
 public:
     RumBarrel *rumBarrels[MAX_RUM_BARRELS];
@@ -285,12 +297,16 @@ public:
     Mine *mines[MAX_MINES];
     int mineCount = 0;
 
+    CannonBall *cannonBalls[100];
+    int cannonBallCount = 0;
+
     void parseInputs() {
 
         // Maybe free
         rumBarrelCount = 0;
         enemyShipCount = 0;
         mineCount = 0;
+        cannonBallCount = 0;
 
         int myShipCount; // the number of remaining ships
         cin >> myShipCount;
@@ -330,8 +346,10 @@ public:
             } else if (entityType == "MINE") {
                 mines[mineCount] = new Mine(entityId, x, y);
                 ++mineCount;
+            } else if (entityType == "CANNONBALL") {
+                cannonBalls[cannonBallCount] = new CannonBall(entityId, x, y, arg1, arg2);
+                ++cannonBallCount;
             }
-
         }
     }
 
@@ -354,7 +372,7 @@ public:
             int enemyDist = 999;
 
             Ship *closestEnemy = (Ship *) Entity::getClosestEntity((Entity **) enemyShips, enemyShipCount, ship->bow(),
-                                                                  &enemyDist);
+                                                                   &enemyDist);
 
             cerr << ship->getId() << " " << closestEnemy->getId() << " dist:" << enemyDist << endl;
             if (enemyDist < 15 && !ship->isCannonOnCd()) {
