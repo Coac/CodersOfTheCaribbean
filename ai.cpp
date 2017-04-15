@@ -4,8 +4,6 @@
 #pragma GCC optimize("unroll-loops")
 
 #include <iostream>
-#include <string>
-#include <vector>
 #include <algorithm>
 #include <math.h>
 #include <chrono>
@@ -19,6 +17,9 @@ using namespace std::chrono;
 
 const int MAP_WIDTH = 23;
 const int MAP_HEIGHT = 21;
+const int MAX_RUM_BARRELS = 26;
+
+class RumBarrel;
 
 enum EntityType {
     SHIP, BARREL, MINE, CANNONBALL
@@ -148,22 +149,30 @@ public:
         return this->position->distanceTo(entity.getPosition());
     }
 
-    Entity *getClosest(const vector<Entity *> &entities, int *closestDistance = nullptr) const {
+    Entity *getClosestEntity(Entity **entities, int entityCount, int *closestDistance = nullptr) const {
         int min = 999;
         Entity *closest = nullptr;
-        for (auto &entity : entities) {
+        for (int i = 0; i < entityCount; ++i) {
+            Entity *entity = entities[i];
             int dist = this->distanceTo(*entity);
-
             if (dist < min) {
                 min = dist;
                 closest = entity;
             }
-
         }
         if (closestDistance) {
             *closestDistance = min;
         }
         return closest;
+    }
+
+    static Entity *findById(Entity **entities, int entityCount, int id) {
+        for (int i = 0; i < entityCount; ++i) {
+            if (entities[i]->getId() == id) {
+                return entities[i];
+            }
+        }
+        return nullptr;
     }
 };
 
@@ -233,13 +242,20 @@ public:
 
 class GameState {
 public:
-    vector<RumBarrel *> rumBarrels;
-    vector<Ship *> allyShips;
-    vector<Ship *> enemyShips;
+    RumBarrel *rumBarrels[MAX_RUM_BARRELS];
+    int rumBarrelCount = 0;
+
+    Ship *allyShips[3];
+    int allyShipCount = 0;
+
+    Ship *enemyShips[3];
+    int enemyShipCount = 0;
 
     void parseInputs() {
-        rumBarrels.clear();
-        enemyShips.clear();
+
+        // Maybe free
+        rumBarrelCount = 0;
+        enemyShipCount = 0;
 
         int myShipCount; // the number of remaining ships
         cin >> myShipCount;
@@ -262,42 +278,43 @@ public:
             if (entityType == "SHIP") {
                 Ship *ship = new Ship(entityId, x, y, arg1, arg2, arg3, arg4);
                 if (ship->isAlly()) {
-                    auto oldShip = find_if(allyShips.begin(), allyShips.end(), [&](Ship *o) {
-                        return o->getId() == ship->getId();
-                    });
-                    if (oldShip == allyShips.end()) {
-                        allyShips.push_back(ship);
+                    auto oldShip = (Ship*)Entity::findById((Entity **) allyShips, allyShipCount, entityId);
+                    if (oldShip == nullptr) {
+                        allyShips[allyShipCount] = ship;
+                        ++allyShipCount;
                     } else {
-                        (*oldShip)->update(*ship);
+                        oldShip->update(*ship);
                     }
                 } else {
-                    enemyShips.push_back(ship);
+                    enemyShips[enemyShipCount] = ship;
+                    ++enemyShipCount;
                 }
             } else if (entityType == "BARREL") {
-                rumBarrels.push_back(new RumBarrel(entityId, x, y, arg1));
+                rumBarrels[rumBarrelCount] = new RumBarrel(entityId, x, y, arg1);
+                ++rumBarrelCount;
             }
 
         }
     }
 
     void decrementCooldown() {
-        for (auto &ship : allyShips) {
-            ship->decrementCooldown();
+        for (int i = 0; i < allyShipCount; ++i) {
+            allyShips[i]->decrementCooldown();
         }
-        for (auto &ship : enemyShips) {
-            ship->decrementCooldown();
+
+        for (int i = 0; i < enemyShipCount; ++i) {
+            enemyShips[i]->decrementCooldown();
         }
     }
 
     void sendOutputs() {
-        for (auto &ship : allyShips) {
-            vector<Entity *> barrels(rumBarrels.begin(), rumBarrels.end());
-            Entity *closestBarrel = ship->getClosest(barrels);
+        for (int i = 0; i < allyShipCount; ++i) {
+            Ship *ship = allyShips[i];
 
-            vector<Entity *> enemies(enemyShips.begin(), enemyShips.end());
+            Entity *closestBarrel = ship->getClosestEntity((Entity **) rumBarrels, rumBarrelCount);
+
             int enemyDist = 999;
-            Ship *closestEnemy = (Ship *) ship->getClosest(enemies, &enemyDist);
-            Coord *coordtest = closestEnemy->getPosition()->neighbor(closestEnemy->getOrientation(), 3);
+            Ship *closestEnemy = (Ship *) ship->getClosestEntity((Entity **) enemyShips, enemyShipCount, &enemyDist);
             if (enemyDist < 15 && !ship->isCannonOnCd()) {
                 cerr << closestEnemy->position->x << " " << closestEnemy->position->y << endl;
                 Coord *coord;
