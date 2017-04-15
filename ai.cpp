@@ -166,6 +166,23 @@ public:
         return closest;
     }
 
+    static Entity *getClosestEntity(Entity **entities, int entityCount, Coord *coord, int *closestDistance = nullptr) {
+        int min = 999;
+        Entity *closest = nullptr;
+        for (int i = 0; i < entityCount; ++i) {
+            Entity *entity = entities[i];
+            int dist = coord->distanceTo(entity->getPosition());
+            if (dist < min) {
+                min = dist;
+                closest = entity;
+            }
+        }
+        if (closestDistance) {
+            *closestDistance = min;
+        }
+        return closest;
+    }
+
     static Entity *findById(Entity **entities, int entityCount, int id) {
         for (int i = 0; i < entityCount; ++i) {
             if (entities[i]->getId() == id) {
@@ -220,6 +237,14 @@ public:
 
     bool isCannonOnCd() {
         return cannonCooldown > 0;
+    }
+
+    Coord *stern() {
+        return position->neighbor((orientation + 3) % 6);
+    }
+
+    Coord *bow() {
+        return position->neighbor(orientation);
     }
 
     void fire(int x, int y) {
@@ -278,7 +303,7 @@ public:
             if (entityType == "SHIP") {
                 Ship *ship = new Ship(entityId, x, y, arg1, arg2, arg3, arg4);
                 if (ship->isAlly()) {
-                    auto oldShip = (Ship*)Entity::findById((Entity **) allyShips, allyShipCount, entityId);
+                    auto oldShip = (Ship *) Entity::findById((Entity **) allyShips, allyShipCount, entityId);
                     if (oldShip == nullptr) {
                         allyShips[allyShipCount] = ship;
                         ++allyShipCount;
@@ -314,9 +339,12 @@ public:
             Entity *closestBarrel = ship->getClosestEntity((Entity **) rumBarrels, rumBarrelCount);
 
             int enemyDist = 999;
-            Ship *closestEnemy = (Ship *) ship->getClosestEntity((Entity **) enemyShips, enemyShipCount, &enemyDist);
-            if (enemyDist < 15 && !ship->isCannonOnCd()) {
-                cerr << closestEnemy->position->x << " " << closestEnemy->position->y << endl;
+
+            Ship *closestEnemy = (Ship *) Entity::getClosestEntity((Entity **) enemyShips, enemyShipCount, ship->bow(),
+                                                                  &enemyDist);
+
+            cerr << ship->getId() << " " << closestEnemy->getId() << " dist:" << enemyDist << endl;
+            if (enemyDist < 10 && !ship->isCannonOnCd()) {
                 Coord *coord;
                 if (closestEnemy->speed == 0) {
                     coord = closestEnemy->getPosition();
