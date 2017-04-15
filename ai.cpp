@@ -94,15 +94,19 @@ public:
         return new Coord(newX, newY);
     }
 
-    CubeCoordinate* toCubeCoordinate() {
+    Coord *neighbor(int orientation, int distance) {
+        Coord *coord = this->neighbor(orientation);
+        for (int i = 0; i < distance - 1; ++i) {
+            coord = coord->neighbor(orientation);
+        }
+        return coord;
+    }
+
+    CubeCoordinate *toCubeCoordinate() {
         int xp = x - (y - (y & 1)) / 2;
         int zp = y;
         int yp = -(xp + zp);
         return new CubeCoordinate(xp, yp, zp);
-    }
-
-    int distanceTo2(Coord *coord) {
-        return abs(this->getX() - coord->getX()) + abs(this->getY() - coord->getY());
     }
 
     int distanceTo(Coord *dst) {
@@ -284,23 +288,24 @@ public:
             int enemyDist = 999;
             Ship *closestEnemy = (Ship *) ship->getClosest(enemies, &enemyDist);
             cerr << enemyDist << endl;
-            if (enemyDist < 10 && !ship->isCannonOnCd()) {
-                cerr << closestEnemy->position->x << " " << closestEnemy->position->y;
+            Coord *coordtest = closestEnemy->getPosition()->neighbor(closestEnemy->getOrientation(), 3);
+            cerr << "coordtest " << coordtest->x << " " << coordtest->y;
+            if (enemyDist < 15 && !ship->isCannonOnCd()) {
+                cerr << closestEnemy->position->x << " " << closestEnemy->position->y << endl;
                 if (closestEnemy->speed == 0) {
                     ship->fire(closestEnemy->getPosition()->getX(), closestEnemy->getPosition()->getY());
+                } else if (closestEnemy->speed == 1) {
+                    Coord *coord = closestEnemy->getPosition()->neighbor(closestEnemy->getOrientation(),
+                                                                         1 + (enemyDist / 3));
+                    ship->fire(coord->getX(), coord->getY());
                 } else {
-                    Coord *coord = closestEnemy->getPosition()->neighbor(closestEnemy->getOrientation());
-                    if (closestEnemy->speed == 1) {
-                        ship->fire(coord->getX(), coord->getY());
-                    } else {
-                        Coord *coord2 = coord->neighbor(closestEnemy->getOrientation());
-                        ship->fire(coord2->getX(), coord2->getY());
-                    }
+                    Coord *coord = closestEnemy->getPosition()->neighbor(closestEnemy->getOrientation(),
+                                                                         2 + (enemyDist / 3));
+                    ship->fire(coord->getX(), coord->getY());
                 }
-
             } else {
                 if (closestBarrel == nullptr) {
-                    cout << "MOVE 0 0" << endl;
+                    cout << "MOVE " << closestEnemy->getPosition()->y << " " << closestEnemy->getPosition()->y << endl;
                 } else {
                     cout << "MOVE " << closestBarrel->getPosition()->getX() << " "
                          << closestBarrel->getPosition()->getY() << endl;
