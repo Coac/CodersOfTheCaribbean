@@ -84,15 +84,19 @@ public:
         this->position = new Coord(x, y);
     }
 
+    int getId() const {
+        return this->id;
+    }
+
     Coord *getPosition() const {
         return position;
     }
 
-    int distanceTo(Entity entity) {
+    int distanceTo(Entity entity) const {
         return this->position->distanceTo(entity.getPosition());
     }
 
-    Entity *getClosest(const vector<Entity *> &entities, int *closestDistance = nullptr) {
+    Entity *getClosest(const vector<Entity *> &entities, int *closestDistance = nullptr) const {
         int min = 999;
         Entity *closest = nullptr;
         for (auto &entity : entities) {
@@ -117,6 +121,8 @@ private:
     int speed;
     int health;
     int owner;
+    int cannonCooldown;
+    int mineCooldown;
 
 public:
     Ship(int id, int x, int y, int orientation, int speed, int health, int owner) : Entity(SHIP, id, x, y) {
@@ -124,6 +130,8 @@ public:
         this->speed = speed;
         this->health = health;
         this->owner = owner;
+        this->cannonCooldown = 0;
+        this->mineCooldown = 0;
     }
 
     bool isAlly() {
@@ -132,6 +140,32 @@ public:
 
     int getOrientation() {
         return orientation;
+    }
+
+    void update(const Ship ship) {
+        this->orientation = ship.orientation;
+        this->speed = ship.speed;
+        this->health = ship.health;
+        this->owner = ship.owner;
+    }
+
+    void decrementCooldown() {
+        --cannonCooldown;
+        --mineCooldown;
+    }
+
+    bool isMineOnCd() {
+        return mineCooldown > 0;
+    }
+
+    bool isCannonOnCd() {
+        return cannonCooldown > 0;
+    }
+
+    void fire(int x, int y) {
+        cannonCooldown = 2;
+        cout << "FIRE " << x << " " << y
+             << endl;
     }
 };
 
@@ -153,6 +187,9 @@ public:
     vector<Ship *> enemyShips;
 
     void parseInputs() {
+        rumBarrels.clear();
+        enemyShips.clear();
+
         int myShipCount; // the number of remaining ships
         cin >> myShipCount;
         cin.ignore();
@@ -174,7 +211,14 @@ public:
             if (entityType == "SHIP") {
                 Ship *ship = new Ship(entityId, x, y, arg1, arg2, arg3, arg4);
                 if (ship->isAlly()) {
-                    allyShips.push_back(ship);
+                    auto oldShip = find_if(allyShips.begin(), allyShips.end(), [&](Ship *o) {
+                        return o->getId() == ship->getId();
+                    });
+                    if (oldShip == allyShips.end()) {
+                        allyShips.push_back(ship);
+                    } else {
+                        (*oldShip)->update(*ship);
+                    }
                 } else {
                     enemyShips.push_back(ship);
                 }
@@ -182,6 +226,15 @@ public:
                 rumBarrels.push_back(new RumBarrel(entityId, x, y, arg1));
             }
 
+        }
+    }
+
+    void decrementCooldown() {
+        for (auto &ship : allyShips) {
+            ship->decrementCooldown();
+        }
+        for (auto &ship : enemyShips) {
+            ship->decrementCooldown();
         }
     }
 
@@ -193,12 +246,10 @@ public:
             vector<Entity *> enemies(enemyShips.begin(), enemyShips.end());
             int enemyDist = 999;
             Ship *closestEnemy = (Ship *) ship->getClosest(enemies, &enemyDist);
-            cerr << enemyDist;
 
-            if (enemyDist < 10) {
+            if (enemyDist < 10 && !ship->isCannonOnCd()) {
                 Coord *coord = closestEnemy->getPosition()->neighbor(closestEnemy->getOrientation());
-                cout << "FIRE " << coord->getX() << " " << coord->getY()
-                     << endl;
+                ship->fire(coord->getX(), coord->getY());
             } else {
                 cout << "MOVE " << closestBarrel->getPosition()->getX() << " " << closestBarrel->getPosition()->getY()
                      << endl;
@@ -210,9 +261,11 @@ public:
 
 int main() {
 
+    GameState *state = new GameState();
+
     while (1) {
-        GameState *state = new GameState();
         state->parseInputs();
+        state->decrementCooldown();
         state->sendOutputs();
     }
 }
