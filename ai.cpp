@@ -18,6 +18,7 @@ using namespace std::chrono;
 const int MAP_WIDTH = 23;
 const int MAP_HEIGHT = 21;
 const int MAX_RUM_BARRELS = 26;
+const int MAX_MINES = 10;
 
 class RumBarrel;
 
@@ -264,6 +265,11 @@ public:
     }
 };
 
+class Mine : public Entity {
+public:
+    Mine(int id, int x, int y) : Entity(MINE, id, x, y) {
+    }
+};
 
 class GameState {
 public:
@@ -276,11 +282,15 @@ public:
     Ship *enemyShips[3];
     int enemyShipCount = 0;
 
+    Mine *mines[MAX_MINES];
+    int mineCount = 0;
+
     void parseInputs() {
 
         // Maybe free
         rumBarrelCount = 0;
         enemyShipCount = 0;
+        mineCount = 0;
 
         int myShipCount; // the number of remaining ships
         cin >> myShipCount;
@@ -317,6 +327,9 @@ public:
             } else if (entityType == "BARREL") {
                 rumBarrels[rumBarrelCount] = new RumBarrel(entityId, x, y, arg1);
                 ++rumBarrelCount;
+            } else if (entityType == "MINE") {
+                mines[mineCount] = new Mine(entityId, x, y);
+                ++mineCount;
             }
 
         }
@@ -344,7 +357,7 @@ public:
                                                                   &enemyDist);
 
             cerr << ship->getId() << " " << closestEnemy->getId() << " dist:" << enemyDist << endl;
-            if (enemyDist < 10 && !ship->isCannonOnCd()) {
+            if (enemyDist < 15 && !ship->isCannonOnCd()) {
                 Coord *coord;
                 if (closestEnemy->speed == 0) {
                     coord = closestEnemy->getPosition();
