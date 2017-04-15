@@ -16,6 +16,10 @@ using namespace std::chrono;
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
 
+
+const int MAP_WIDTH = 23;
+const int MAP_HEIGHT = 21;
+
 enum EntityType {
     SHIP, BARREL, MINE, CANNONBALL
 };
@@ -81,6 +85,10 @@ public:
 
     void setX(int x) {
         this->x = x;
+    }
+
+    bool isInsideMap() {
+        return x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT;
     }
 
     Coord *neighbor(int orientation) {
@@ -293,17 +301,21 @@ public:
             Coord *coordtest = closestEnemy->getPosition()->neighbor(closestEnemy->getOrientation(), 3);
             if (enemyDist < 15 && !ship->isCannonOnCd()) {
                 cerr << closestEnemy->position->x << " " << closestEnemy->position->y << endl;
+                Coord *coord;
                 if (closestEnemy->speed == 0) {
-                    ship->fire(closestEnemy->getPosition()->getX(), closestEnemy->getPosition()->getY());
+                    coord = closestEnemy->getPosition();
                 } else if (closestEnemy->speed == 1) {
-                    Coord *coord = closestEnemy->getPosition()->neighbor(closestEnemy->getOrientation(),
-                                                                         1 + (enemyDist / 3));
-                    ship->fire(coord->getX(), coord->getY());
+                    coord = closestEnemy->getPosition()->neighbor(closestEnemy->getOrientation(),
+                                                                  1 + (enemyDist / 3));
                 } else {
-                    Coord *coord = closestEnemy->getPosition()->neighbor(closestEnemy->getOrientation(),
-                                                                         2 + (enemyDist / 3));
-                    ship->fire(coord->getX(), coord->getY());
+                    coord = closestEnemy->getPosition()->neighbor(closestEnemy->getOrientation(),
+                                                                  2 + (enemyDist / 3));
                 }
+
+                if (!coord->isInsideMap()) {
+                    coord = closestEnemy->getPosition();
+                }
+                ship->fire(coord->getX(), coord->getY());
             } else {
                 if (closestBarrel == nullptr) {
                     cout << "MOVE " << closestEnemy->getPosition()->y << " " << closestEnemy->getPosition()->y << endl;
@@ -330,7 +342,7 @@ int main() {
         state->sendOutputs();
 
         high_resolution_clock::time_point t2 = high_resolution_clock::now();
-        auto duration = duration_cast<milliseconds>( t2 - t1 ).count();
+        auto duration = duration_cast<milliseconds>(t2 - t1).count();
         cerr << duration << " ms";
     }
 }
