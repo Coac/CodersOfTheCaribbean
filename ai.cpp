@@ -327,6 +327,10 @@ public:
     RumBarrel(int id, int x, int y, int health) : Entity(BARREL, id, x, y) {
         this->health = health;
     }
+
+    RumBarrel *clone() {
+        return new RumBarrel(id, this->position->x, this->position->y, health);
+    }
 };
 
 class Mine : public Entity {
@@ -363,6 +367,39 @@ public:
 
     CannonBall *cannonBalls[100];
     int cannonBallCount = 0;
+
+    GameState *clone() {
+        GameState *cloned = new GameState();
+        cloned->rumBarrelCount = this->rumBarrelCount;
+        cloned->allyShipCount = this->allyShipCount;
+        cloned->enemyShipCount = this->enemyShipCount;
+        cloned->mineCount = this->mineCount;
+        cloned->cannonBallCount = this->cannonBallCount;
+
+        for (int i = 0; i < rumBarrelCount; ++i) {
+            cloned->rumBarrels[i] = this->rumBarrels[i]->clone();
+        }
+        for (int i = 0; i < allyShipCount; ++i) {
+            cloned->allyShips[i] = this->allyShips[i];
+        }
+        for (int i = 0; i < enemyShipCount; ++i) {
+            cloned->enemyShips[i] = this->enemyShips[i];
+        }
+        for (int i = 0; i < mineCount; ++i) {
+            cloned->mines[i] = this->mines[i];
+        }
+        for (int i = 0; i < cannonBallCount; ++i) {
+            cloned->cannonBalls[i] = this->cannonBalls[i];
+        }
+
+        return cloned;
+    }
+
+    ~GameState() {
+        for (int i = 0; i < rumBarrelCount; ++i) {
+            delete this->rumBarrels[i];
+        }
+    }
 
     void parseInputs() {
 
@@ -517,6 +554,10 @@ int main() {
         state->decrementCooldown();
         state->computeActions();
         state->sendOutputs();
+
+        for (int i = 0; i < 15000; ++i) {
+            delete state->clone();
+        }
 
         high_resolution_clock::time_point t2 = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(t2 - t1).count();
