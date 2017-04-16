@@ -36,12 +36,7 @@ public:
     int y;
     int z;
 
-    int directions[6][3] = {{1,  -1, 0},
-                            {+1, 0,  -1},
-                            {0,  +1, -1},
-                            {-1, +1, 0},
-                            {-1, 0,  +1},
-                            {0,  -1, +1}};
+    static int directions[6][3];
 
     CubeCoordinate(int x, int y, int z) {
         this->x = x;
@@ -54,23 +49,20 @@ public:
     }
 };
 
+int CubeCoordinate::directions[6][3] = {{1,  -1, 0},
+                                        {+1, 0,  -1},
+                                        {0,  +1, -1},
+                                        {-1, +1, 0},
+                                        {-1, 0,  +1},
+                                        {0,  -1, +1}};
+
 class Coord {
 public:
     int x;
     int y;
 
-    int DIRECTIONS_EVEN[6][2] = {{1,  0},
-                                 {0,  -1},
-                                 {-1, -1},
-                                 {-1, 0},
-                                 {-1, 1},
-                                 {0,  1}};
-    int DIRECTIONS_ODD[6][2] = {{1,  0},
-                                {1,  -1},
-                                {0,  -1},
-                                {-1, 0},
-                                {0,  1},
-                                {1,  1}};
+    static int DIRECTIONS_EVEN[6][2];
+    static int DIRECTIONS_ODD[6][2];
 
     Coord(int x, int y) {
         this->x = x;
@@ -129,6 +121,19 @@ public:
         return this->toCubeCoordinate()->distanceTo(dst->toCubeCoordinate());
     }
 };
+
+int Coord::DIRECTIONS_EVEN[6][2] = {{1,  0},
+                                    {0,  -1},
+                                    {-1, -1},
+                                    {-1, 0},
+                                    {-1, 1},
+                                    {0,  1}};
+int Coord::DIRECTIONS_ODD[6][2] = {{1,  0},
+                                   {1,  -1},
+                                   {0,  -1},
+                                   {-1, 0},
+                                   {0,  1},
+                                   {1,  1}};
 
 class Entity {
 public:
