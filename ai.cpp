@@ -332,6 +332,26 @@ public:
         return false;
     }
 
+    bool newPositionsIntersect(Ship *other) {
+        bool sternCollision = newSternCoordinate.x != -1 && (newSternCoordinate.equals(other->newBowCoordinate)
+                                                             || newSternCoordinate.equals(other->newPosition) ||
+                                                             newSternCoordinate.equals(other->newSternCoordinate));
+        bool centerCollision = newPosition.x != -1 &&
+                               (newPosition.equals(other->newBowCoordinate) || newPosition.equals(other->newPosition)
+                                || newPosition.equals(other->newSternCoordinate));
+        return newBowIntersect(other) || sternCollision || centerCollision;
+    }
+
+    bool newPositionsIntersect(List<Ship *, 6> ships) {
+        for (auto other : ships) {
+            if (this != other && newPositionsIntersect(other)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
     bool isMineOnCd() {
         return mineCooldown > 0;
     }
@@ -346,6 +366,14 @@ public:
 
     Coord bow() {
         return position.neighbor(orientation);
+    }
+
+    Coord newStern() {
+        return position.neighbor((newOrientation + 3) % 6);
+    }
+
+    Coord newBow() {
+        return position.neighbor(newOrientation);
     }
 
     void fire(int x, int y) {
@@ -670,6 +698,50 @@ public:
     }
 
 
+    void rotateShips() {
+        // Rotate
+        for (auto ship : ships) {
+            if (ship->isDead) continue;
+            ship->newPosition = ship->position;
+            ship->newBowCoordinate = ship->newBow();
+            ship->newSternCoordinate = ship->newStern();
+        }
+
+
+        // Check collisions
+        bool collisionDetected = true;
+        List<Ship *, 10> collisions;
+        while (collisionDetected) {
+            collisionDetected = false;
+
+            for (auto ship : ships) {
+                if (ship->isDead) continue;
+                if (ship->newPositionsIntersect(ships)) {
+                    collisions.add(ship);
+                }
+            }
+
+            for (auto ship : collisions) {
+                ship->newOrientation = ship->orientation;
+                ship->newBowCoordinate = ship->newBow();
+                ship->newSternCoordinate = ship->newStern();
+                ship->speed = 0;
+                collisionDetected = true;
+            }
+
+            collisions.clear();
+        }
+
+        // Apply rotation
+        for (auto ship : ships) {
+            if (ship->isDead) continue;
+            ship->orientation = ship->newOrientation;
+            checkCollisions(ship);
+
+        }
+    }
+
+
     void clearLists() {
         for (int i = 0; i < rumBarrels.count; ++i) {
             delete this->rumBarrels.array[i];
@@ -845,6 +917,7 @@ int main() {
 
             clonedState->applyActions();
             clonedState->moveShips();
+            clonedState->rotateShips();
 
             delete clonedState;
         }
