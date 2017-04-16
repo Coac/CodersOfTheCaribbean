@@ -26,7 +26,7 @@ class RumBarrel;
 template<typename T, int N>
 class List {
 public:
-    T array[N];
+    T array[N+1];
     int count = 0;
 
     void add(T element) {
@@ -41,8 +41,7 @@ public:
     T *begin() { return &array[0]; }
 
     T *end() {
-        assert(count > 0);
-        return &array[count - 1];
+        return &array[count];
     }
 
 };
@@ -453,8 +452,8 @@ public:
     void parseInputs() {
         clearLists();
 
-        for (int i = 0; i < allyShips.count; ++i) {
-            allyShips.array[i]->isDead = true;
+        for (auto ship : allyShips) {
+            ship->isDead = true;
         }
 
         int myShipCount; // the number of remaining ships
@@ -498,19 +497,17 @@ public:
     }
 
     void decrementCooldown() {
-        for (int i = 0; i < allyShips.count; ++i) {
-            allyShips.array[i]->decrementCooldown();
+        for (auto ship : allyShips) {
+            ship->decrementCooldown();
         }
 
-        for (int i = 0; i < enemyShips.count; ++i) {
-            enemyShips.array[i]->decrementCooldown();
+        for (auto ship : enemyShips) {
+            ship->decrementCooldown();
         }
     }
 
     void computeActions() {
-        for (int i = 0; i < allyShips.count; ++i) {
-            Ship *ship = allyShips.array[i];
-
+        for (auto ship : allyShips) {
             if (ship->isDead) continue;
 
             int enemyDist = 999;
@@ -571,8 +568,7 @@ public:
     }
 
     void sendOutputs() {
-        for (int i = 0; i < allyShips.count; ++i) {
-            Ship *ship = allyShips.array[i];
+        for (auto ship : allyShips) {
             if (ship->isDead) continue;
 
             ship->sendOutput();
