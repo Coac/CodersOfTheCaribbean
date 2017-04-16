@@ -741,6 +741,24 @@ public:
         }
     }
 
+    void explodeShips() {
+          for (int i = 0; i < cannonBallExplosions.count; ++i) {
+            Coord position = cannonBallExplosions.array[i];
+
+            for (auto ship : ships) {
+                if (position.equals(ship->bow()) || position.equals(ship->stern())) {
+                    ship->health -= LOW_DAMAGE;
+                    cannonBallExplosions.removeAt(i);
+                    break;
+                } else if (position.equals(ship->position)) {
+                    ship->health -= HIGH_DAMAGE;
+                    cannonBallExplosions.removeAt(i);
+                    break;
+                }
+            }
+        }
+    }
+
 
     void clearLists() {
         for (int i = 0; i < rumBarrels.count; ++i) {
@@ -918,6 +936,8 @@ int main() {
             clonedState->applyActions();
             clonedState->moveShips();
             clonedState->rotateShips();
+
+            clonedState->explodeShips();
 
             delete clonedState;
         }
