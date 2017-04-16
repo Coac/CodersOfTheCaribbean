@@ -296,14 +296,14 @@ public:
 
     bool heal(unsigned int amount) {
         health += amount;
-        if(health > MAX_SHIP_HEALTH) {
+        if (health > MAX_SHIP_HEALTH) {
             health = MAX_SHIP_HEALTH;
         }
     }
 
     bool damage(unsigned int amount) {
         health -= amount;
-        if(health < 0) {
+        if (health < 0) {
             health = 0;
         }
     }
@@ -700,6 +700,14 @@ public:
             RumBarrel *barrel = rumBarrels.array[i];
             if (barrel->position.equals(bow) || barrel->position.equals(stern) || barrel->position.equals(center)) {
                 ship->heal(barrel->health);
+                cerr << endl;
+                cerr << "Bow x:" << bow.x << " y:" << bow.y << endl;
+                cerr << "Stern x:" << stern.x << " y:" << stern.y << endl;
+                cerr << "Center x:" << center.x << " y:" << center.y << endl;
+                cerr << "Barrel health:" << barrel->health << " x:" << barrel->position.x << " y:" << barrel->position.y
+                     << " victim:" << ship->id << endl;
+                cerr << endl;
+
                 rumBarrels.removeAt(i);
                 --i;
             }
@@ -708,12 +716,20 @@ public:
         // Collision with the mines
         for (int i = 0; i < mines.count; ++i) {
             Mine *mine = mines.array[i];
+            if (mine->position.equals(bow) || mine->position.equals(stern) || mine->position.equals(center)) {
+                ship->damage(MINE_DAMAGE);
+                cerr << endl;
+                cerr << "Bow x:" << bow.x << " y:" << bow.y << endl;
+                cerr << "Stern x:" << stern.x << " y:" << stern.y << endl;
+                cerr << "Center x:" << center.x << " y:" << center.y << endl;
+                cerr << "MineExplosion x:" << mine->position.x << " y:" << mine->position.y << " victim:"
+                     << ship->id << " dmg:" << MINE_DAMAGE << endl;
+                cerr << endl;
 
-            ship->damage(MINE_DAMAGE);
-            // TODO : APROX DAMAGE
-
-            mines.removeAt(i);
-            --i;
+                // TODO : APROX DAMAGE
+                mines.removeAt(i);
+                --i;
+            }
         }
     }
 
@@ -765,7 +781,6 @@ public:
         for (int i = 0; i < cannonBallExplosions.count; ++i) {
             Coord position = cannonBallExplosions.array[i];
 
-            cerr << "cannonBallexplosion x:" << position.x << " y:" << position.y << endl;
 
             for (auto ship : ships) {
                 if (ship->isDead) continue;
@@ -774,11 +789,17 @@ public:
                     ship->damage(LOW_DAMAGE);
                     cannonBallExplosions.removeAt(i);
                     --i;
+                    cerr << "cannonBallexplosion x:" << position.x << " y:" << position.y << " hitted:" << ship->id
+                         << " dmg:" << LOW_DAMAGE << endl;
+
                     break;
                 } else if (position.equals(ship->position)) {
                     ship->damage(HIGH_DAMAGE);
                     cannonBallExplosions.removeAt(i);
                     --i;
+                    cerr << "cannonBallexplosion x:" << position.x << " y:" << position.y << " hitted:" << ship->id
+                         << " dmg:" << HIGH_DAMAGE << endl;
+
                     break;
                 }
             }
@@ -958,6 +979,8 @@ int main() {
         clonedState->moveShips();
         clonedState->rotateShips();
         clonedState->explodeShips();
+
+        cerr << "[Ally ships]" << endl;
         for (auto ship : clonedState->allyShips) {
             cerr << "id:" << ship->id << " x:" << ship->position.x << " y:" << ship->position.y << " health:"
                  << ship->health
@@ -984,7 +1007,7 @@ int main() {
 
         high_resolution_clock::time_point t2 = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(t2 - t1).count();
-        cerr << duration << " ms";
+        cerr << "[Time] " << duration << " ms";
     }
 }
 
