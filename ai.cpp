@@ -18,15 +18,32 @@ using namespace std::chrono;
 
 const int MAP_WIDTH = 23;
 const int MAP_HEIGHT = 21;
-const int MAX_RUM_BARRELS = 26;
+const int COOLDOWN_CANNON = 2;
+const int COOLDOWN_MINE = 5;
+const int INITIAL_SHIP_HEALTH = 100;
+const int MAX_SHIP_HEALTH = 100;
+const int MAX_SHIP_SPEED = 2;
+const int MAX_SHIPS = 3;
 const int MAX_MINES = 10;
+const int MIN_RUM_BARRELS = 10;
+const int MAX_RUM_BARRELS = 26;
+const int MIN_RUM_BARREL_VALUE = 10;
+const int MAX_RUM_BARREL_VALUE = 20;
+const int REWARD_RUM_BARREL_VALUE = 30;
+const int MINE_VISIBILITY_RANGE = 5;
+const int FIRE_DISTANCE_MAX = 10;
+const int LOW_DAMAGE = 25;
+const int HIGH_DAMAGE = 50;
+const int MINE_DAMAGE = 25;
+const int NEAR_MINE_DAMAGE = 10;
+
 
 class RumBarrel;
 
 template<typename T, int N>
 class List {
 public:
-    T array[N+1];
+    T array[N + 1];
     int count = 0;
 
     void add(T element) {
@@ -36,6 +53,13 @@ public:
 
     void clear() {
         count = 0;
+    }
+
+    void removeAt(int index) {
+        for (int i = index; i < count - 1; ++i) {
+            array[i] = array[i + 1];
+        }
+        --count;
     }
 
     T *begin() { return &array[0]; }
@@ -240,12 +264,15 @@ public:
 class Ship : public Entity {
 public:
     int orientation;
+    int newOrientation;
     int speed;
     int health;
     int owner;
     int cannonCooldown;
     int mineCooldown;
     bool isDead = false;
+
+
     Action action;
     int targetX;
     int targetY;
@@ -374,11 +401,10 @@ public:
 };
 
 class CannonBall : public Entity {
-private:
+public:
     int ownerEntityId;
     int remainingTurns;
 
-public:
     CannonBall(int id, int x, int y, int ownerEntityId, int remainingTurns) : Entity(CANNONBALL, id, x, y) {
         this->ownerEntityId = ownerEntityId;
         this->remainingTurns = remainingTurns;
@@ -387,16 +413,18 @@ public:
 
 class GameState {
 public:
-    List<RumBarrel*, MAX_RUM_BARRELS> rumBarrels;
+    List<RumBarrel *, MAX_RUM_BARRELS> rumBarrels;
 
-    List<Ship*, 3> allyShips;
+    List<Ship *, 3> allyShips;
 
-    List<Ship*, 3> enemyShips;
+    List<Ship *, 3> enemyShips;
 
-    List<Mine*, MAX_MINES> mines;
+    List<Mine *, MAX_MINES> mines;
 
-    List<CannonBall*, 100> cannonBalls;
-    
+    List<CannonBall *, 100> cannonBalls;
+
+    List<Coord, 100> cannonBallExplosions;
+
     GameState *clone() {
         GameState *cloned = new GameState();
         cloned->rumBarrels.count = this->rumBarrels.count;
@@ -429,6 +457,99 @@ public:
             delete this->rumBarrels.array[i];
         }
     }
+
+    void moveCannonballs() {
+        for (int i = 0; i < cannonBalls.count; ++i) {
+            CannonBall *ball = cannonBalls.array[i];
+
+            if (ball->remainingTurns == 0) {
+                cannonBalls.removeAt(i);
+                continue;
+            } else if (ball->remainingTurns > 0) {
+                ball->remainingTurns--;
+            }
+
+            if (ball->remainingTurns == 0) {
+                cannonBallExplosions.add(ball->position);
+            }
+        }
+    }
+
+    void decrementRum() {
+        for (auto ship : allyShips) {
+            --ship->health;
+        }
+        for (auto ship : enemyShips) {
+            --ship->health;
+        }
+    }
+
+    void applyActions() {
+        for (auto ship : allyShips) {
+            if (ship->isDead) continue;
+
+            if (ship->mineCooldown > 0) {
+                ship->mineCooldown--;
+            }
+            if (ship->cannonCooldown > 0) {
+                ship->cannonCooldown--;
+            }
+
+            ship->newOrientation = ship->orientation;
+
+            switch (ship->action) {
+                case FASTER:
+                    if (ship->speed < MAX_SHIP_SPEED) {
+                        ship->speed++;
+                    }
+                    break;
+                case SLOWER:
+                    if (ship->speed > 0) {
+                        ship->speed--;
+                    }
+                    break;
+                case PORT:
+                    ship->newOrientation = (ship->orientation + 1) % 6;
+                    break;
+                case STARBOARD:
+                    ship->newOrientation = (ship->orientation + 5) % 6;
+                    break;
+//                case MINE:
+//                    if (ship->mineCooldown == 0) {
+//                        Coord target = ship->stern().neighbor((ship->orientation + 3) % 6);
+//
+//                        if (target.isInsideMap()) {
+//                            bool cellIsFreeOfBarrels = barrels.stream().noneMatch(
+//                                    barrel->barrel.position.equals(target));
+//                            bool cellIsFreeOfMines = mines.stream().noneMatch(mine->mine.position.equals(target));
+//                            bool cellIsFreeOfShips = ships.stream().filter(b->b != ship).noneMatch(b->b.at(target));
+//
+//                            if (cellIsFreeOfBarrels && cellIsFreeOfShips && cellIsFreeOfMines) {
+//                                ship->mineCooldown = COOLDOWN_MINE;
+//                                Mine mine = new Mine(target.x, target.y);
+//                                mines.add(mine);
+//                            }
+//                        }
+//
+//                    }
+//                    break;
+                case FIRE:
+                    Coord target;
+                    target.x = ship->targetX;
+                    target.y = ship->targetY;
+
+                    int distance = ship->bow().distanceTo(target);
+                    if (target.isInsideMap() && distance <= FIRE_DISTANCE_MAX && ship->cannonCooldown == 0) {
+                        int travelTime = (int) (1 + round(ship->bow().distanceTo(target) / 3.0));
+                        cannonBalls.add(new CannonBall(9999, target.x, target.y, ship->id, travelTime));
+                        ship->cannonCooldown = COOLDOWN_CANNON;
+                    }
+                    break;
+            }
+
+        }
+    }
+
 
     void clearLists() {
         for (int i = 0; i < rumBarrels.count; ++i) {
@@ -511,7 +632,8 @@ public:
             if (ship->isDead) continue;
 
             int enemyDist = 999;
-            Ship *closestEnemy = (Ship *) Entity::getClosestEntity((Entity **) enemyShips.array, enemyShips.count, ship->bow(),
+            Ship *closestEnemy = (Ship *) Entity::getClosestEntity((Entity **) enemyShips.array, enemyShips.count,
+                                                                   ship->bow(),
                                                                    &enemyDist);
             cerr << ship->getId() << " " << closestEnemy->getId() << " dist:" << enemyDist << endl;
             if (enemyDist < 15 && !ship->isCannonOnCd()) {
@@ -532,7 +654,8 @@ public:
                 ship->fire(coord.getX(), coord.getY());
             } else {
                 int barrelDist = 999;
-                Entity *closestBarrel = ship->getClosestEntity((Entity **) rumBarrels.array, rumBarrels.count, &barrelDist);
+                Entity *closestBarrel = ship->getClosestEntity((Entity **) rumBarrels.array, rumBarrels.count,
+                                                               &barrelDist);
                 if (closestBarrel == nullptr) {
                     ship->move(closestEnemy->getPosition().x, closestEnemy->getPosition().y);
                 } else {
