@@ -26,6 +26,10 @@ enum EntityType {
     SHIP, BARREL, MINE, CANNONBALL
 };
 
+enum Action {
+    FASTER, SLOWER, PORT, STARBOARD, FIRE, MOVE
+};
+
 class CubeCoordinate {
 public:
     int x;
@@ -203,6 +207,9 @@ public:
     int cannonCooldown;
     int mineCooldown;
     bool isDead = false;
+    Action action;
+    int targetX;
+    int targetY;
 
     Ship(int id, int x, int y, int orientation, int speed, int health, int owner) : Entity(SHIP, id, x, y) {
         this->orientation = orientation;
@@ -211,6 +218,7 @@ public:
         this->owner = owner;
         this->cannonCooldown = 0;
         this->mineCooldown = 0;
+        this->action = FASTER;
     }
 
     bool isAlly() {
@@ -253,9 +261,56 @@ public:
     }
 
     void fire(int x, int y) {
-        cannonCooldown = 2;
-        cout << "FIRE " << x << " " << y
-             << endl;
+        this->action = FIRE;
+        this->targetX = x;
+        this->targetY = y;
+    }
+
+    void faster() {
+        this->action = Action::FASTER;
+    }
+
+    void slower() {
+        this->action = Action::SLOWER;
+    }
+
+    void port() {
+        this->action = Action::PORT;
+    }
+
+    void starboard() {
+        this->action = Action::STARBOARD;
+    }
+
+    void move(int x, int y) {
+        this->action = MOVE;
+        this->targetX = x;
+        this->targetY = y;
+    }
+
+    void sendOutput() {
+        switch (this->action) {
+            case Action::FASTER:
+                cout << "FASTER" << endl;
+                break;
+            case Action::SLOWER:
+                cout << "SLOWER" << endl;
+                break;
+            case Action::STARBOARD:
+                cout << "STARBOARD" << endl;
+                break;
+            case Action::PORT:
+                cout << "PORT" << endl;
+                break;
+            case Action::FIRE:
+                cout << "FIRE " << this->targetX << " " << this->targetY << endl;
+                cannonCooldown = 2;
+                break;
+            case Action::MOVE:
+                cout << "MOVE " << this->targetX << " " << this->targetY << endl;
+                break;
+        }
+
     }
 };
 
@@ -371,7 +426,7 @@ public:
         }
     }
 
-    void sendOutputs() {
+    void computeActions() {
         for (int i = 0; i < allyShipCount; ++i) {
             Ship *ship = allyShips[i];
 
@@ -401,7 +456,7 @@ public:
                 int barrelDist = 999;
                 Entity *closestBarrel = ship->getClosestEntity((Entity **) rumBarrels, rumBarrelCount, &barrelDist);
                 if (closestBarrel == nullptr) {
-                    cout << "MOVE " << closestEnemy->getPosition()->y << " " << closestEnemy->getPosition()->y << endl;
+                    ship->move(closestEnemy->getPosition()->x, closestEnemy->getPosition()->y);
                 } else {
                     Coord *shipCoord = ship->position;
                     Coord *fasterCoord = shipCoord->neighbor(ship->orientation, ship->speed + 1);
@@ -416,16 +471,15 @@ public:
 
 
                     if (fasterCoord->isInsideMap() && fastDist <= starDist && fastDist <= portDist) {
-                        cout << "FASTER" << endl;
+                        ship->faster();
                     } else if ((ship->speed > 0 || barrelDist == 1) && portCoord->isInsideMap() &&
                                portDist <= starDist && portDist <= fastDist) {
-                        cout << "PORT" << endl;
+                        ship->port();
                     } else if ((ship->speed > 0 || barrelDist == 1) && starboardCoord->isInsideMap() &&
                                starDist <= fastDist && starDist <= portDist) {
-                        cout << "STARBOARD" << endl;
+                        ship->starboard();
                     } else {
-                        cout << "MOVE " << closestBarrel->getPosition()->getX() << " "
-                             << closestBarrel->getPosition()->getY() << endl;
+                        ship->move(closestBarrel->getPosition()->getX(), closestBarrel->getPosition()->getY());
                     }
 
                 }
@@ -434,6 +488,17 @@ public:
 
         }
     }
+
+    void sendOutputs() {
+        for (int i = 0; i < allyShipCount; ++i) {
+            Ship *ship = allyShips[i];
+            if (ship->isDead) continue;
+
+            ship->sendOutput();
+        }
+    }
+
+
 };
 
 int main() {
@@ -445,6 +510,7 @@ int main() {
 
         state->parseInputs();
         state->decrementCooldown();
+        state->computeActions();
         state->sendOutputs();
 
         high_resolution_clock::time_point t2 = high_resolution_clock::now();
