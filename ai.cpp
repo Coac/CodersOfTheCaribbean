@@ -403,10 +403,9 @@ public:
 };
 
 class RumBarrel : public Entity {
-private:
+public:
     int health;
 
-public:
     RumBarrel(int id, int x, int y, int health) : Entity(BARREL, id, x, y) {
         this->health = health;
     }
@@ -638,9 +637,35 @@ public:
                 if (ship->isDead) continue;
 
                 ship->position = ship->newPosition;
-                // checkCollisions(ship);
+                checkCollisions(ship);
 
             }
+        }
+    }
+
+    void checkCollisions(Ship *ship) {
+        Coord bow = ship->bow();
+        Coord stern = ship->stern();
+        Coord center = ship->position;
+
+        // Collision with the barrels
+        for (int i = 0; i < rumBarrels.count; ++i) {
+            RumBarrel *barrel = rumBarrels.array[i];
+            if (barrel->position.equals(bow) || barrel->position.equals(stern) || barrel->position.equals(center)) {
+                ship->health += barrel->health;
+                rumBarrels.removeAt(i);
+            }
+
+        }
+
+        // Collision with the mines
+        for (int i = 0; i < mines.count; ++i) {
+            Mine *mine = mines.array[i];
+
+            ship->health -= MINE_DAMAGE;
+            // TODO : APROX DAMAGE
+
+            rumBarrels.removeAt(i);
         }
     }
 
