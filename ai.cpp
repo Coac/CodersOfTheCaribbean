@@ -411,13 +411,27 @@ public:
         }
     }
 
-    void parseInputs() {
-
-        // Maybe free
+    void clearLists() {
+        for (int i = 0; i < rumBarrelCount; ++i) {
+            delete this->rumBarrels[i];
+        }
         rumBarrelCount = 0;
+        for (int i = 0; i < enemyShipCount; ++i) {
+            delete this->enemyShips[i];
+        }
         enemyShipCount = 0;
+        for (int i = 0; i < mineCount; ++i) {
+            delete this->mines[i];
+        }
         mineCount = 0;
+        for (int i = 0; i < cannonBallCount; ++i) {
+            delete this->cannonBalls[i];
+        }
         cannonBallCount = 0;
+    }
+
+    void parseInputs() {
+        clearLists();
 
         for (int i = 0; i < allyShipCount; ++i) {
             allyShips[i]->isDead = true;
@@ -494,10 +508,10 @@ public:
                     coord = closestEnemy->getPosition();
                 } else if (closestEnemy->speed == 1) {
                     coord = closestEnemy->getPosition().neighbor(closestEnemy->getOrientation(),
-                                                                  1 + (enemyDist / 3));
+                                                                 1 + (enemyDist / 3));
                 } else {
                     coord = closestEnemy->getPosition().neighbor(closestEnemy->getOrientation(),
-                                                                  2 + (enemyDist / 3));
+                                                                 2 + (enemyDist / 3));
                 }
 
                 if (!coord.isInsideMap()) {
