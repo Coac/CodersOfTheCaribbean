@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <math.h>
 #include <chrono>
-#include <assert.h>
 
 using namespace std;
 using namespace std::chrono;
@@ -15,6 +14,9 @@ using namespace std::chrono;
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
 
+//#define DEBUG_SIMU
+#define DEBUG_SHIPS
+#define PRINT_TIME
 
 const int MAP_WIDTH = 23;
 const int MAP_HEIGHT = 21;
@@ -539,8 +541,10 @@ public:
                 ball->remainingTurns--;
             }
 
+#ifdef DEBUG_SIMU
             cerr << "CannonBall x:" << ball->position.x << " y:" << ball->position.y << " remainingTurns:"
                  << ball->remainingTurns << endl;
+#endif
 
 
             if (ball->remainingTurns == 0) {
@@ -700,6 +704,8 @@ public:
             RumBarrel *barrel = rumBarrels.array[i];
             if (barrel->position.equals(bow) || barrel->position.equals(stern) || barrel->position.equals(center)) {
                 ship->heal(barrel->health);
+
+#ifdef DEBUG_SIMU
                 cerr << endl;
                 cerr << "Bow x:" << bow.x << " y:" << bow.y << endl;
                 cerr << "Stern x:" << stern.x << " y:" << stern.y << endl;
@@ -707,7 +713,7 @@ public:
                 cerr << "Barrel health:" << barrel->health << " x:" << barrel->position.x << " y:" << barrel->position.y
                      << " victim:" << ship->id << endl;
                 cerr << endl;
-
+#endif
                 rumBarrels.removeAt(i);
                 --i;
             }
@@ -718,6 +724,7 @@ public:
             Mine *mine = mines.array[i];
             if (mine->position.equals(bow) || mine->position.equals(stern) || mine->position.equals(center)) {
                 ship->damage(MINE_DAMAGE);
+#ifdef DEBUG_SIMU
                 cerr << endl;
                 cerr << "Bow x:" << bow.x << " y:" << bow.y << endl;
                 cerr << "Stern x:" << stern.x << " y:" << stern.y << endl;
@@ -725,7 +732,7 @@ public:
                 cerr << "MineExplosion x:" << mine->position.x << " y:" << mine->position.y << " victim:"
                      << ship->id << " dmg:" << MINE_DAMAGE << endl;
                 cerr << endl;
-
+#endif
                 // TODO : APROX DAMAGE
                 mines.removeAt(i);
                 --i;
@@ -789,16 +796,21 @@ public:
                     ship->damage(LOW_DAMAGE);
                     cannonBallExplosions.removeAt(i);
                     --i;
+#ifdef DEBUG_SIMU
+
                     cerr << "cannonBallexplosion x:" << position.x << " y:" << position.y << " hitted:" << ship->id
                          << " dmg:" << LOW_DAMAGE << endl;
+#endif
 
                     break;
                 } else if (position.equals(ship->position)) {
                     ship->damage(HIGH_DAMAGE);
                     cannonBallExplosions.removeAt(i);
                     --i;
+#ifdef DEBUG_SIMU
                     cerr << "cannonBallexplosion x:" << position.x << " y:" << position.y << " hitted:" << ship->id
                          << " dmg:" << HIGH_DAMAGE << endl;
+#endif
 
                     break;
                 }
@@ -966,31 +978,32 @@ int main() {
     GameState *state = new GameState();
 
     while (1) {
+#ifdef PRINT_TIME
         high_resolution_clock::time_point t1 = high_resolution_clock::now();
-
+#endif
         state->parseInputs();
         state->decrementCooldown();
         state->computeActions();
-
-        GameState *clonedState = state->clone();
-        clonedState->moveCannonballs();
-        clonedState->decrementRum();
-        clonedState->applyActions();
-        clonedState->moveShips();
-        clonedState->rotateShips();
-        clonedState->explodeShips();
-
-        cerr << "[Ally ships]" << endl;
-        for (auto ship : clonedState->allyShips) {
-            cerr << "id:" << ship->id << " x:" << ship->position.x << " y:" << ship->position.y << " health:"
-                 << ship->health
-                 << " orientation:" << ship->orientation << endl;
-        }
-        delete clonedState;
-
         state->sendOutputs();
 
-//        for (int i = 0; i < 20000; ++i) {
+//        GameState *clonedState = state->clone();
+//        clonedState->moveCannonballs();
+//        clonedState->decrementRum();
+//        clonedState->applyActions();
+//        clonedState->moveShips();
+//        clonedState->rotateShips();
+//        clonedState->explodeShips();
+//#ifdef DEBUG_SHIPS
+//        cerr << "[Ally ships]" << endl;
+//        for (auto ship : clonedState->allyShips) {
+//            cerr << "id:" << ship->id << " x:" << ship->position.x << " y:" << ship->position.y << " health:"
+//                 << ship->health
+//                 << " orientation:" << ship->orientation << endl;
+//        }
+//#endif
+//        delete clonedState;
+
+//        for (int i = 0; i < 10000; ++i) {
 //            GameState *clonedState = state->clone();
 //
 //            clonedState->moveCannonballs();
@@ -1005,9 +1018,11 @@ int main() {
 //            delete clonedState;
 //        }
 
+#ifdef PRINT_TIME
         high_resolution_clock::time_point t2 = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(t2 - t1).count();
         cerr << "[Time] " << duration << " ms";
+#endif
     }
 }
 
