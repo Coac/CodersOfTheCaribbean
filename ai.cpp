@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <math.h>
 #include <chrono>
+#include <assert.h>
 
 using namespace std;
 using namespace std::chrono;
@@ -21,6 +22,30 @@ const int MAX_RUM_BARRELS = 26;
 const int MAX_MINES = 10;
 
 class RumBarrel;
+
+template<typename T, int N>
+class List {
+public:
+    T array[N];
+    int count = 0;
+
+    void add(T element) {
+        array[count] = element;
+        ++count;
+    }
+
+    void clear() {
+        count = 0;
+    }
+
+    T *begin() { return &array[0]; }
+
+    T *end() {
+        assert(count > 0);
+        return &array[count - 1];
+    }
+
+};
 
 enum EntityType {
     SHIP, BARREL, MINE, CANNONBALL
@@ -363,78 +388,73 @@ public:
 
 class GameState {
 public:
-    RumBarrel *rumBarrels[MAX_RUM_BARRELS];
-    int rumBarrelCount = 0;
+    List<RumBarrel*, MAX_RUM_BARRELS> rumBarrels;
 
-    Ship *allyShips[3];
-    int allyShipCount = 0;
+    List<Ship*, 3> allyShips;
 
-    Ship *enemyShips[3];
-    int enemyShipCount = 0;
+    List<Ship*, 3> enemyShips;
 
-    Mine *mines[MAX_MINES];
-    int mineCount = 0;
+    List<Mine*, MAX_MINES> mines;
 
-    CannonBall *cannonBalls[100];
-    int cannonBallCount = 0;
-
+    List<CannonBall*, 100> cannonBalls;
+    
     GameState *clone() {
         GameState *cloned = new GameState();
-        cloned->rumBarrelCount = this->rumBarrelCount;
-        cloned->allyShipCount = this->allyShipCount;
-        cloned->enemyShipCount = this->enemyShipCount;
-        cloned->mineCount = this->mineCount;
-        cloned->cannonBallCount = this->cannonBallCount;
+        cloned->rumBarrels.count = this->rumBarrels.count;
+        cloned->allyShips.count = this->allyShips.count;
+        cloned->enemyShips.count = this->enemyShips.count;
+        cloned->mines.count = this->mines.count;
+        cloned->cannonBalls.count = this->cannonBalls.count;
 
-        for (int i = 0; i < rumBarrelCount; ++i) {
-            cloned->rumBarrels[i] = this->rumBarrels[i]->clone();
+        for (int i = 0; i < rumBarrels.count; ++i) {
+            cloned->rumBarrels.array[i] = this->rumBarrels.array[i]->clone();
         }
-        for (int i = 0; i < allyShipCount; ++i) {
-            cloned->allyShips[i] = this->allyShips[i];
+        for (int i = 0; i < allyShips.count; ++i) {
+            cloned->allyShips.array[i] = this->allyShips.array[i];
         }
-        for (int i = 0; i < enemyShipCount; ++i) {
-            cloned->enemyShips[i] = this->enemyShips[i];
+        for (int i = 0; i < enemyShips.count; ++i) {
+            cloned->enemyShips.array[i] = this->enemyShips.array[i];
         }
-        for (int i = 0; i < mineCount; ++i) {
-            cloned->mines[i] = this->mines[i];
+        for (int i = 0; i < mines.count; ++i) {
+            cloned->mines.array[i] = this->mines.array[i];
         }
-        for (int i = 0; i < cannonBallCount; ++i) {
-            cloned->cannonBalls[i] = this->cannonBalls[i];
+        for (int i = 0; i < cannonBalls.count; ++i) {
+            cloned->cannonBalls.array[i] = this->cannonBalls.array[i];
         }
 
         return cloned;
     }
 
     ~GameState() {
-        for (int i = 0; i < rumBarrelCount; ++i) {
-            delete this->rumBarrels[i];
+        for (int i = 0; i < rumBarrels.count; ++i) {
+            delete this->rumBarrels.array[i];
         }
     }
 
     void clearLists() {
-        for (int i = 0; i < rumBarrelCount; ++i) {
-            delete this->rumBarrels[i];
+        for (int i = 0; i < rumBarrels.count; ++i) {
+            delete this->rumBarrels.array[i];
         }
-        rumBarrelCount = 0;
-        for (int i = 0; i < enemyShipCount; ++i) {
-            delete this->enemyShips[i];
+        rumBarrels.clear();
+        for (int i = 0; i < enemyShips.count; ++i) {
+            delete this->enemyShips.array[i];
         }
-        enemyShipCount = 0;
-        for (int i = 0; i < mineCount; ++i) {
-            delete this->mines[i];
+        enemyShips.clear();
+        for (int i = 0; i < mines.count; ++i) {
+            delete this->mines.array[i];
         }
-        mineCount = 0;
-        for (int i = 0; i < cannonBallCount; ++i) {
-            delete this->cannonBalls[i];
+        mines.clear();
+        for (int i = 0; i < cannonBalls.count; ++i) {
+            delete this->cannonBalls.array[i];
         }
-        cannonBallCount = 0;
+        cannonBalls.clear();
     }
 
     void parseInputs() {
         clearLists();
 
-        for (int i = 0; i < allyShipCount; ++i) {
-            allyShips[i]->isDead = true;
+        for (int i = 0; i < allyShips.count; ++i) {
+            allyShips.array[i]->isDead = true;
         }
 
         int myShipCount; // the number of remaining ships
@@ -458,48 +478,43 @@ public:
             if (entityType == "SHIP") {
                 Ship *ship = new Ship(entityId, x, y, arg1, arg2, arg3, arg4);
                 if (ship->isAlly()) {
-                    auto oldShip = (Ship *) Entity::findById((Entity **) allyShips, allyShipCount, entityId);
+                    auto oldShip = (Ship *) Entity::findById((Entity **) allyShips.array, allyShips.count, entityId);
                     if (oldShip == nullptr) {
-                        allyShips[allyShipCount] = ship;
-                        ++allyShipCount;
+                        allyShips.add(ship);
                     } else {
                         oldShip->update(*ship);
                     }
                 } else {
-                    enemyShips[enemyShipCount] = ship;
-                    ++enemyShipCount;
+                    enemyShips.add(ship);
                 }
             } else if (entityType == "BARREL") {
-                rumBarrels[rumBarrelCount] = new RumBarrel(entityId, x, y, arg1);
-                ++rumBarrelCount;
+                rumBarrels.add(new RumBarrel(entityId, x, y, arg1));
             } else if (entityType == "MINE") {
-                mines[mineCount] = new Mine(entityId, x, y);
-                ++mineCount;
+                mines.add(new Mine(entityId, x, y));
             } else if (entityType == "CANNONBALL") {
-                cannonBalls[cannonBallCount] = new CannonBall(entityId, x, y, arg1, arg2);
-                ++cannonBallCount;
+                cannonBalls.add(new CannonBall(entityId, x, y, arg1, arg2));
             }
         }
     }
 
     void decrementCooldown() {
-        for (int i = 0; i < allyShipCount; ++i) {
-            allyShips[i]->decrementCooldown();
+        for (int i = 0; i < allyShips.count; ++i) {
+            allyShips.array[i]->decrementCooldown();
         }
 
-        for (int i = 0; i < enemyShipCount; ++i) {
-            enemyShips[i]->decrementCooldown();
+        for (int i = 0; i < enemyShips.count; ++i) {
+            enemyShips.array[i]->decrementCooldown();
         }
     }
 
     void computeActions() {
-        for (int i = 0; i < allyShipCount; ++i) {
-            Ship *ship = allyShips[i];
+        for (int i = 0; i < allyShips.count; ++i) {
+            Ship *ship = allyShips.array[i];
 
             if (ship->isDead) continue;
 
             int enemyDist = 999;
-            Ship *closestEnemy = (Ship *) Entity::getClosestEntity((Entity **) enemyShips, enemyShipCount, ship->bow(),
+            Ship *closestEnemy = (Ship *) Entity::getClosestEntity((Entity **) enemyShips.array, enemyShips.count, ship->bow(),
                                                                    &enemyDist);
             cerr << ship->getId() << " " << closestEnemy->getId() << " dist:" << enemyDist << endl;
             if (enemyDist < 15 && !ship->isCannonOnCd()) {
@@ -520,7 +535,7 @@ public:
                 ship->fire(coord.getX(), coord.getY());
             } else {
                 int barrelDist = 999;
-                Entity *closestBarrel = ship->getClosestEntity((Entity **) rumBarrels, rumBarrelCount, &barrelDist);
+                Entity *closestBarrel = ship->getClosestEntity((Entity **) rumBarrels.array, rumBarrels.count, &barrelDist);
                 if (closestBarrel == nullptr) {
                     ship->move(closestEnemy->getPosition().x, closestEnemy->getPosition().y);
                 } else {
@@ -556,8 +571,8 @@ public:
     }
 
     void sendOutputs() {
-        for (int i = 0; i < allyShipCount; ++i) {
-            Ship *ship = allyShips[i];
+        for (int i = 0; i < allyShips.count; ++i) {
+            Ship *ship = allyShips.array[i];
             if (ship->isDead) continue;
 
             ship->sendOutput();
