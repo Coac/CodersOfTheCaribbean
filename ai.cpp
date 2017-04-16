@@ -69,6 +69,11 @@ public:
         this->y = y;
     }
 
+    Coord() {
+        this->x = -1;
+        this->y = -1;
+    }
+
     int getY() const {
         return this->y;
     }
@@ -89,7 +94,7 @@ public:
         return x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT;
     }
 
-    Coord *neighbor(int orientation) {
+    Coord neighbor(int orientation) {
         int newY, newX;
         if (this->y % 2 == 1) {
             newY = this->y + DIRECTIONS_ODD[orientation][1];
@@ -99,13 +104,17 @@ public:
             newX = this->x + DIRECTIONS_EVEN[orientation][0];
         }
 
-        return new Coord(newX, newY);
+        Coord coord;
+        coord.x = newX;
+        coord.y = newY;
+
+        return coord;
     }
 
-    Coord *neighbor(int orientation, int distance) {
-        Coord *coord = this->neighbor(orientation);
+    Coord neighbor(int orientation, int distance) {
+        Coord coord = this->neighbor(orientation);
         for (int i = 0; i < distance - 1; ++i) {
-            coord = coord->neighbor(orientation);
+            coord = coord.neighbor(orientation);
         }
         return coord;
     }
@@ -117,8 +126,8 @@ public:
         return new CubeCoordinate(xp, yp, zp);
     }
 
-    int distanceTo(Coord *dst) {
-        return this->toCubeCoordinate()->distanceTo(dst->toCubeCoordinate());
+    int distanceTo(Coord dst) {
+        return this->toCubeCoordinate()->distanceTo(dst.toCubeCoordinate());
     }
 };
 
@@ -139,27 +148,28 @@ class Entity {
 public:
     int id;
     EntityType type;
-    Coord *position;
+    Coord position;
 
     Entity(EntityType type, int id, int x, int y) {
         this->id = id;
         this->type = type;
-        this->position = new Coord(x, y);
+        this->position.x = x;
+        this->position.y = y;
     }
 
     int getId() const {
         return this->id;
     }
 
-    Coord *getPosition() const {
+    Coord getPosition() const {
         return position;
     }
 
-    int distanceTo(Entity entity) const {
-        return this->position->distanceTo(entity.getPosition());
+    int distanceTo(Entity entity) {
+        return this->position.distanceTo(entity.getPosition());
     }
 
-    Entity *getClosestEntity(Entity **entities, int entityCount, int *closestDistance = nullptr) const {
+    Entity *getClosestEntity(Entity **entities, int entityCount, int *closestDistance = nullptr) {
         int min = 999;
         Entity *closest = nullptr;
         for (int i = 0; i < entityCount; ++i) {
@@ -176,12 +186,12 @@ public:
         return closest;
     }
 
-    static Entity *getClosestEntity(Entity **entities, int entityCount, Coord *coord, int *closestDistance = nullptr) {
+    static Entity *getClosestEntity(Entity **entities, int entityCount, Coord coord, int *closestDistance = nullptr) {
         int min = 999;
         Entity *closest = nullptr;
         for (int i = 0; i < entityCount; ++i) {
             Entity *entity = entities[i];
-            int dist = coord->distanceTo(entity->getPosition());
+            int dist = coord.distanceTo(entity->getPosition());
             if (dist < min) {
                 min = dist;
                 closest = entity;
@@ -257,12 +267,12 @@ public:
         return cannonCooldown > 0;
     }
 
-    Coord *stern() {
-        return position->neighbor((orientation + 3) % 6);
+    Coord stern() {
+        return position.neighbor((orientation + 3) % 6);
     }
 
-    Coord *bow() {
-        return position->neighbor(orientation);
+    Coord bow() {
+        return position.neighbor(orientation);
     }
 
     void fire(int x, int y) {
@@ -329,7 +339,7 @@ public:
     }
 
     RumBarrel *clone() {
-        return new RumBarrel(id, this->position->x, this->position->y, health);
+        return new RumBarrel(id, this->position.x, this->position.y, health);
     }
 };
 
@@ -479,49 +489,49 @@ public:
                                                                    &enemyDist);
             cerr << ship->getId() << " " << closestEnemy->getId() << " dist:" << enemyDist << endl;
             if (enemyDist < 15 && !ship->isCannonOnCd()) {
-                Coord *coord;
+                Coord coord;
                 if (closestEnemy->speed == 0) {
                     coord = closestEnemy->getPosition();
                 } else if (closestEnemy->speed == 1) {
-                    coord = closestEnemy->getPosition()->neighbor(closestEnemy->getOrientation(),
+                    coord = closestEnemy->getPosition().neighbor(closestEnemy->getOrientation(),
                                                                   1 + (enemyDist / 3));
                 } else {
-                    coord = closestEnemy->getPosition()->neighbor(closestEnemy->getOrientation(),
+                    coord = closestEnemy->getPosition().neighbor(closestEnemy->getOrientation(),
                                                                   2 + (enemyDist / 3));
                 }
 
-                if (!coord->isInsideMap()) {
+                if (!coord.isInsideMap()) {
                     coord = closestEnemy->getPosition();
                 }
-                ship->fire(coord->getX(), coord->getY());
+                ship->fire(coord.getX(), coord.getY());
             } else {
                 int barrelDist = 999;
                 Entity *closestBarrel = ship->getClosestEntity((Entity **) rumBarrels, rumBarrelCount, &barrelDist);
                 if (closestBarrel == nullptr) {
-                    ship->move(closestEnemy->getPosition()->x, closestEnemy->getPosition()->y);
+                    ship->move(closestEnemy->getPosition().x, closestEnemy->getPosition().y);
                 } else {
-                    Coord *shipCoord = ship->position;
-                    Coord *fasterCoord = shipCoord->neighbor(ship->orientation, ship->speed + 1);
-                    Coord *portCoord = shipCoord->neighbor(ship->orientation, ship->speed)->neighbor(
+                    Coord shipCoord = ship->position;
+                    Coord fasterCoord = shipCoord.neighbor(ship->orientation, ship->speed + 1);
+                    Coord portCoord = shipCoord.neighbor(ship->orientation, ship->speed).neighbor(
                             (ship->orientation + 1) % 6);
-                    Coord *starboardCoord = shipCoord->neighbor(ship->orientation, ship->speed)->neighbor(
+                    Coord starboardCoord = shipCoord.neighbor(ship->orientation, ship->speed).neighbor(
                             (ship->orientation == 0 ? 5 : ship->orientation - 1));
 
-                    int portDist = portCoord->distanceTo(closestBarrel->getPosition());
-                    int starDist = starboardCoord->distanceTo(closestBarrel->getPosition());
-                    int fastDist = fasterCoord->distanceTo(closestBarrel->getPosition());
+                    int portDist = portCoord.distanceTo(closestBarrel->getPosition());
+                    int starDist = starboardCoord.distanceTo(closestBarrel->getPosition());
+                    int fastDist = fasterCoord.distanceTo(closestBarrel->getPosition());
 
 
-                    if (fasterCoord->isInsideMap() && fastDist <= starDist && fastDist <= portDist) {
+                    if (fasterCoord.isInsideMap() && fastDist <= starDist && fastDist <= portDist) {
                         ship->faster();
-                    } else if ((ship->speed > 0 || barrelDist == 1) && portCoord->isInsideMap() &&
+                    } else if ((ship->speed > 0 || barrelDist == 1) && portCoord.isInsideMap() &&
                                portDist <= starDist && portDist <= fastDist) {
                         ship->port();
-                    } else if ((ship->speed > 0 || barrelDist == 1) && starboardCoord->isInsideMap() &&
+                    } else if ((ship->speed > 0 || barrelDist == 1) && starboardCoord.isInsideMap() &&
                                starDist <= fastDist && starDist <= portDist) {
                         ship->starboard();
                     } else {
-                        ship->move(closestBarrel->getPosition()->getX(), closestBarrel->getPosition()->getY());
+                        ship->move(closestBarrel->getPosition().getX(), closestBarrel->getPosition().getY());
                     }
 
                 }
@@ -555,7 +565,7 @@ int main() {
         state->computeActions();
         state->sendOutputs();
 
-        for (int i = 0; i < 15000; ++i) {
+        for (int i = 0; i < 35000; ++i) {
             delete state->clone();
         }
 
