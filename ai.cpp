@@ -294,6 +294,20 @@ public:
         this->action = FASTER;
     }
 
+    bool heal(unsigned int amount) {
+        health += amount;
+        if(health > MAX_SHIP_HEALTH) {
+            health = MAX_SHIP_HEALTH;
+        }
+    }
+
+    bool damage(unsigned int amount) {
+        health -= amount;
+        if(health < 0) {
+            health = 0;
+        }
+    }
+
     bool isAlly() {
         return owner == 1;
     }
@@ -537,10 +551,10 @@ public:
 
     void decrementRum() {
         for (auto ship : allyShips) {
-            --ship->health;
+            ship->damage(1);
         }
         for (auto ship : enemyShips) {
-            --ship->health;
+            ship->damage(1);
         }
     }
 
@@ -685,7 +699,7 @@ public:
         for (int i = 0; i < rumBarrels.count; ++i) {
             RumBarrel *barrel = rumBarrels.array[i];
             if (barrel->position.equals(bow) || barrel->position.equals(stern) || barrel->position.equals(center)) {
-                ship->health += barrel->health;
+                ship->heal(barrel->health);
                 rumBarrels.removeAt(i);
                 --i;
             }
@@ -695,7 +709,7 @@ public:
         for (int i = 0; i < mines.count; ++i) {
             Mine *mine = mines.array[i];
 
-            ship->health -= MINE_DAMAGE;
+            ship->damage(MINE_DAMAGE);
             // TODO : APROX DAMAGE
 
             mines.removeAt(i);
@@ -757,12 +771,12 @@ public:
                 if (ship->isDead) continue;
 
                 if (position.equals(ship->bow()) || position.equals(ship->stern())) {
-                    ship->health -= LOW_DAMAGE;
+                    ship->damage(LOW_DAMAGE);
                     cannonBallExplosions.removeAt(i);
                     --i;
                     break;
                 } else if (position.equals(ship->position)) {
-                    ship->health -= HIGH_DAMAGE;
+                    ship->damage(HIGH_DAMAGE);
                     cannonBallExplosions.removeAt(i);
                     --i;
                     break;
