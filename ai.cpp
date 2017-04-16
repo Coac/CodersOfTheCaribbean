@@ -483,6 +483,7 @@ public:
         cloned->enemyShips.count = this->enemyShips.count;
         cloned->mines.count = this->mines.count;
         cloned->cannonBalls.count = this->cannonBalls.count;
+        cloned->ships.count = this->ships.count;
 
         for (int i = 0; i < rumBarrels.count; ++i) {
             cloned->rumBarrels.array[i] = this->rumBarrels.array[i]->clone();
@@ -518,10 +519,15 @@ public:
 
             if (ball->remainingTurns == 0) {
                 cannonBalls.removeAt(i);
+                --i;
                 continue;
             } else if (ball->remainingTurns > 0) {
                 ball->remainingTurns--;
             }
+
+            cerr << "CannonBall x:" << ball->position.x << " y:" << ball->position.y << " remainingTurns:"
+                 << ball->remainingTurns << endl;
+
 
             if (ball->remainingTurns == 0) {
                 cannonBallExplosions.add(ball->position);
@@ -660,7 +666,6 @@ public:
                 }
                 collisions.clear();
             }
-
             for (auto ship : ships) {
                 if (ship->isDead) continue;
 
@@ -682,8 +687,8 @@ public:
             if (barrel->position.equals(bow) || barrel->position.equals(stern) || barrel->position.equals(center)) {
                 ship->health += barrel->health;
                 rumBarrels.removeAt(i);
+                --i;
             }
-
         }
 
         // Collision with the mines
@@ -693,7 +698,8 @@ public:
             ship->health -= MINE_DAMAGE;
             // TODO : APROX DAMAGE
 
-            rumBarrels.removeAt(i);
+            mines.removeAt(i);
+            --i;
         }
     }
 
@@ -742,17 +748,23 @@ public:
     }
 
     void explodeShips() {
-          for (int i = 0; i < cannonBallExplosions.count; ++i) {
+        for (int i = 0; i < cannonBallExplosions.count; ++i) {
             Coord position = cannonBallExplosions.array[i];
 
+            cerr << "cannonBallexplosion x:" << position.x << " y:" << position.y << endl;
+
             for (auto ship : ships) {
+                if (ship->isDead) continue;
+
                 if (position.equals(ship->bow()) || position.equals(ship->stern())) {
                     ship->health -= LOW_DAMAGE;
                     cannonBallExplosions.removeAt(i);
+                    --i;
                     break;
                 } else if (position.equals(ship->position)) {
                     ship->health -= HIGH_DAMAGE;
                     cannonBallExplosions.removeAt(i);
+                    --i;
                     break;
                 }
             }
@@ -849,7 +861,6 @@ public:
             Ship *closestEnemy = (Ship *) Entity::getClosestEntity((Entity **) enemyShips.array, enemyShips.count,
                                                                    ship->bow(),
                                                                    &enemyDist);
-            cerr << ship->getId() << " " << closestEnemy->getId() << " dist:" << enemyDist << endl;
             if (enemyDist < 15 && !ship->isCannonOnCd()) {
                 Coord coord;
                 if (closestEnemy->speed == 0) {
@@ -925,22 +936,37 @@ int main() {
         state->parseInputs();
         state->decrementCooldown();
         state->computeActions();
+
+        GameState *clonedState = state->clone();
+        clonedState->moveCannonballs();
+        clonedState->decrementRum();
+        clonedState->applyActions();
+        clonedState->moveShips();
+        clonedState->rotateShips();
+        clonedState->explodeShips();
+        for (auto ship : clonedState->allyShips) {
+            cerr << "id:" << ship->id << " x:" << ship->position.x << " y:" << ship->position.y << " health:"
+                 << ship->health
+                 << " orientation:" << ship->orientation << endl;
+        }
+        delete clonedState;
+
         state->sendOutputs();
 
-        for (int i = 0; i < 20000; ++i) {
-            GameState *clonedState = state->clone();
-
-            clonedState->moveCannonballs();
-            clonedState->decrementRum();
-
-            clonedState->applyActions();
-            clonedState->moveShips();
-            clonedState->rotateShips();
-
-            clonedState->explodeShips();
-
-            delete clonedState;
-        }
+//        for (int i = 0; i < 20000; ++i) {
+//            GameState *clonedState = state->clone();
+//
+//            clonedState->moveCannonballs();
+//            clonedState->decrementRum();
+//
+//            clonedState->applyActions();
+//            clonedState->moveShips();
+//            clonedState->rotateShips();
+//
+//            clonedState->explodeShips();
+//
+//            delete clonedState;
+//        }
 
         high_resolution_clock::time_point t2 = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(t2 - t1).count();
