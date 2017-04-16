@@ -122,6 +122,10 @@ public:
         this->y = -1;
     }
 
+    bool equals(Coord other) {
+        return x == other.x && y == other.y;
+    }
+
     int getY() const {
         return this->y;
     }
@@ -270,6 +274,9 @@ public:
     int owner;
     int cannonCooldown;
     int mineCooldown;
+    Coord newPosition;
+    Coord newBowCoordinate;
+    Coord newSternCoordinate;
     bool isDead = false;
 
 
@@ -308,6 +315,21 @@ public:
     void decrementCooldown() {
         --cannonCooldown;
         --mineCooldown;
+    }
+
+    bool newBowIntersect(Ship *other) {
+        return newBowCoordinate.x != -1 && newBowCoordinate.y != -1 &&
+               (newBowCoordinate.equals(other->newBowCoordinate) || newBowCoordinate.equals(other->newPosition)
+                || newBowCoordinate.equals(other->newSternCoordinate));
+    }
+
+    bool newBowIntersect(List<Ship *, 6> ships) {
+        for (auto other : ships) {
+            if (this != other && newBowIntersect(other)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     bool isMineOnCd() {
@@ -419,6 +441,8 @@ public:
 
     List<Ship *, 3> enemyShips;
 
+    List<Ship *, 6> ships;
+
     List<Mine *, MAX_MINES> mines;
 
     List<CannonBall *, 100> cannonBalls;
@@ -441,6 +465,9 @@ public:
         }
         for (int i = 0; i < enemyShips.count; ++i) {
             cloned->enemyShips.array[i] = this->enemyShips.array[i];
+        }
+        for (int i = 0; i < ships.count; ++i) {
+            cloned->ships.array[i] = this->ships.array[i];
         }
         for (int i = 0; i < mines.count; ++i) {
             cloned->mines.array[i] = this->mines.array[i];
@@ -485,7 +512,7 @@ public:
     }
 
     void applyActions() {
-        for (auto ship : allyShips) {
+        for (auto ship : ships) {
             if (ship->isDead) continue;
 
             if (ship->mineCooldown > 0) {
@@ -550,6 +577,73 @@ public:
         }
     }
 
+    void moveShips() {
+        // ---
+        // Go forward
+        // ---
+        for (int i = 1; i <= MAX_SHIP_SPEED; i++) {
+            for (auto ship : ships) {
+                if (ship->isDead) continue;
+
+                ship->newPosition = ship->position;
+                ship->newBowCoordinate = ship->bow();
+                ship->newSternCoordinate = ship->stern();
+
+                if (i > ship->speed) {
+                    continue;
+                }
+
+                Coord newCoordinate = ship->position.neighbor(ship->orientation);
+
+                if (newCoordinate.isInsideMap()) {
+                    // Set new coordinate.
+                    ship->newPosition = newCoordinate;
+                    ship->newBowCoordinate = newCoordinate.neighbor(ship->orientation);
+                    ship->newSternCoordinate = newCoordinate.neighbor((ship->orientation + 3) % 6);
+                } else {
+                    // Stop ship!
+                    ship->speed = 0;
+                }
+            }
+
+            // Check ship and obstacles collisions
+            List<Ship *, 10> collisions;
+            bool collisionDetected = true;
+            while (collisionDetected) {
+                collisionDetected = false;
+
+                for (auto ship : ships) {
+                    if (ship->isDead) continue;
+
+                    if (ship->newBowIntersect(ships)) {
+                        collisions.add(ship);
+                    }
+                }
+
+                for (auto ship : collisions) {
+                    // Revert last move
+                    ship->newPosition = ship->position;
+                    ship->newBowCoordinate = ship->bow();
+                    ship->newSternCoordinate = ship->stern();
+
+                    // Stop ships
+                    ship->speed = 0;
+
+                    collisionDetected = true;
+                }
+                collisions.clear();
+            }
+
+            for (auto ship : ships) {
+                if (ship->isDead) continue;
+
+                ship->position = ship->newPosition;
+                // checkCollisions(ship);
+
+            }
+        }
+    }
+
 
     void clearLists() {
         for (int i = 0; i < rumBarrels.count; ++i) {
@@ -568,6 +662,8 @@ public:
             delete this->cannonBalls.array[i];
         }
         cannonBalls.clear();
+
+        ships.clear();
     }
 
     void parseInputs() {
@@ -601,11 +697,14 @@ public:
                     auto oldShip = (Ship *) Entity::findById((Entity **) allyShips.array, allyShips.count, entityId);
                     if (oldShip == nullptr) {
                         allyShips.add(ship);
+                        ships.add(ship);
                     } else {
                         oldShip->update(*ship);
+                        ships.add(oldShip);
                     }
                 } else {
                     enemyShips.add(ship);
+                    ships.add(ship);
                 }
             } else if (entityType == "BARREL") {
                 rumBarrels.add(new RumBarrel(entityId, x, y, arg1));
@@ -713,8 +812,16 @@ int main() {
         state->computeActions();
         state->sendOutputs();
 
-        for (int i = 0; i < 35000; ++i) {
-            delete state->clone();
+        for (int i = 0; i < 20000; ++i) {
+            GameState *clonedState = state->clone();
+
+            clonedState->moveCannonballs();
+            clonedState->decrementRum();
+
+            clonedState->applyActions();
+            clonedState->moveShips();
+
+            delete clonedState;
         }
 
         high_resolution_clock::time_point t2 = high_resolution_clock::now();
