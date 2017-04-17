@@ -846,6 +846,14 @@ public:
         }
     }
 
+    void simulateTurn() {
+        this->moveCannonballs();
+        this->decrementRum();
+        this->applyActions();
+        this->moveShips();
+        this->rotateShips();
+        this->explodeShips();
+    }
 
     void clearLists() {
         for (int i = 0; i < rumBarrels.count; ++i) {
@@ -1040,6 +1048,36 @@ public:
     }
 };
 
+GameState* full_random_strategy(GameState* state) {
+    GameState *bestState = new GameState(*state);
+    int bestScore = -999;
+    for (int j = 0; j < 500; ++j) {
+        GameState *baseState = new GameState(*state);
+        baseState->computeRandomActions();
+
+        GameState *endState = new GameState(*baseState);
+        endState->simulateTurn();
+        for (int i = 0; i < 10; ++i) {
+            endState->computeRandomActions();
+            endState->simulateTurn();
+        }
+        int score = endState->eval();
+        delete endState;
+
+        if(score > bestScore) {
+            delete bestState;
+            bestState = baseState;
+            bestScore = score;
+        } else {
+            delete baseState;
+        }
+
+    }
+    delete state;
+
+    return bestState;
+}
+
 int main() {
 
     GameState *state = new GameState();
@@ -1050,43 +1088,23 @@ int main() {
 #endif
         state->parseInputs();
         state->decrementCooldown();
+
         state->computeActions();
+
+        //state = full_random_strategy(state);
+
         state->sendOutputs();
 
-        GameState *clonedState = new GameState(*state);
-        clonedState->moveCannonballs();
-        clonedState->decrementRum();
-        clonedState->applyActions();
-        clonedState->moveShips();
-        clonedState->rotateShips();
-        clonedState->explodeShips();
-        cerr << "score:" << clonedState->eval() << endl;
 
-#ifdef DEBUG_SHIPS
-        cerr << "[Ally ships]" << endl;
-        for (auto ship : clonedState->allyShips) {
-            if (ship->isDead) continue;
-            cerr << "id:" << ship->id << " x:" << ship->position.x << " y:" << ship->position.y << " health:"
-                 << ship->health << " isDead:" << ship->isDead
-                 << " orientation:" << ship->orientation << endl;
-        }
-#endif
-        delete clonedState;
-
-//        for (int i = 0; i < 1; ++i) {
-//            GameState *clonedState = new GameState(*state);
-//
-//            clonedState->moveCannonballs();
-//            clonedState->decrementRum();
-//
-//            clonedState->applyActions();
-//            clonedState->moveShips();
-//            clonedState->rotateShips();
-//
-//            clonedState->explodeShips();
-//
-//            delete clonedState;
+//#ifdef DEBUG_SHIPS
+//        cerr << "[Ally ships]" << endl;
+//        for (auto ship : bestState->allyShips) {
+//            if (ship->isDead) continue;
+//            cerr << "id:" << ship->id << " x:" << ship->position.x << " y:" << ship->position.y << " health:"
+//                 << ship->health << " isDead:" << ship->isDead
+//                 << " orientation:" << ship->orientation << endl;
 //        }
+//#endif
 
 
 #ifdef PRINT_TIME
