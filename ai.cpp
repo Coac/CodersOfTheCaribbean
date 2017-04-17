@@ -1063,10 +1063,10 @@ public:
     }
 };
 
-GameState *full_random_strategy(GameState *state) {
+GameState *full_random_strategy(GameState *state, high_resolution_clock::time_point start) {
     GameState *bestState = new GameState(*state);
     int bestScore = -999;
-    for (int j = 0; j < 500; ++j) {
+    for (int j = 0; j < 10000; ++j) {
         GameState *baseState = new GameState(*state);
         baseState->computeRandomActions();
 
@@ -1087,6 +1087,14 @@ GameState *full_random_strategy(GameState *state) {
             delete baseState;
         }
 
+        high_resolution_clock::time_point t2 = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(t2 - start).count();
+        if(duration > 45) {
+            cerr << j << endl;
+
+            state;
+            return bestState;
+        }
     }
     delete state;
 
@@ -1099,14 +1107,14 @@ int main() {
 
     while (1) {
 #ifdef PRINT_TIME
-        high_resolution_clock::time_point t1 = high_resolution_clock::now();
+        high_resolution_clock::time_point start = high_resolution_clock::now();
 #endif
         state->parseInputs();
         state->decrementCooldown();
 
         // state->computeActions();
 
-        state = full_random_strategy(state);
+        state = full_random_strategy(state, start);
 
         state->sendOutputs();
 
@@ -1123,8 +1131,8 @@ int main() {
 
 
 #ifdef PRINT_TIME
-        high_resolution_clock::time_point t2 = high_resolution_clock::now();
-        auto duration = duration_cast<milliseconds>(t2 - t1).count();
+        high_resolution_clock::time_point end = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(end - start).count();
         cerr << "[Time] " << duration << " ms";
 #endif
     }
