@@ -77,7 +77,7 @@ enum EntityType {
 };
 
 enum Action {
-    FASTER, SLOWER, PORT, STARBOARD, MOVE, FIRE
+    FASTER, SLOWER, PORT, STARBOARD, FIRE, MOVE
 };
 
 class CubeCoordinate {
@@ -299,6 +299,8 @@ public:
     int targetX;
     int targetY;
 
+    int speedSum;
+
     Ship(int id, int x, int y, int orientation, int speed, int health, int owner) : Entity(SHIP, id, x, y) {
         this->orientation = orientation;
         this->speed = speed;
@@ -307,6 +309,7 @@ public:
         this->cannonCooldown = 0;
         this->mineCooldown = 0;
         this->action = FASTER;
+        this->speedSum = 0;
     }
 
     friend ostream &operator<<(ostream &os, const Ship &ship) {
@@ -723,6 +726,7 @@ public:
                 ship->position = ship->newPosition;
                 checkCollisions(ship);
 
+                ship->speedSum += ship->speed;
             }
         }
     }
@@ -880,7 +884,7 @@ public:
         ships.clear();
     }
 
-    void parseInputs() {
+    high_resolution_clock::time_point parseInputs() {
         clearLists();
 
         for (auto ship : allyShips) {
@@ -890,9 +894,13 @@ public:
         int myShipCount; // the number of remaining ships
         cin >> myShipCount;
         cin.ignore();
+
+        high_resolution_clock::time_point time = high_resolution_clock::now();
+
         int entityCount; // the number of entities (e.g. ships, mines or cannonballs)
         cin >> entityCount;
         cin.ignore();
+
         for (int i = 0; i < entityCount; i++) {
             int entityId;
             string entityType;
@@ -928,6 +936,8 @@ public:
                 cannonBalls.add(new CannonBall(entityId, x, y, arg1, arg2));
             }
         }
+
+        return time;
     }
 
     void decrementCooldown() {
@@ -1031,9 +1041,7 @@ public:
             score -= barrelDist;
 
 
-            if (ship->position.isBorderMap()) {
-                score -= 100;
-            }
+            score += ship->speedSum / 2;
         }
 
         for (auto ship : enemyShips) {
@@ -1065,12 +1073,15 @@ public:
 
 GameState *full_random_strategy(GameState *state, high_resolution_clock::time_point start) {
     GameState *bestState = new GameState(*state);
-    int bestScore = -999;
-    for (int j = 0; j < 10000; ++j) {
+    int bestScore = -99999;
+    for (int j = 0; j < 100000; ++j) {
         GameState *baseState = new GameState(*state);
         baseState->computeRandomActions();
 
         GameState *endState = new GameState(*baseState);
+        for (auto ship : endState->ships) {
+            ship->speedSum = 0;
+        }
         endState->simulateTurn();
         for (int i = 0; i < 5; ++i) {
             endState->computeRandomActions();
@@ -1087,12 +1098,12 @@ GameState *full_random_strategy(GameState *state, high_resolution_clock::time_po
             delete baseState;
         }
 
-        high_resolution_clock::time_point t2 = high_resolution_clock::now();
-        auto duration = duration_cast<milliseconds>(t2 - start).count();
-        if(duration > 45) {
-            cerr << j << endl;
+        high_resolution_clock::time_point end = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(end - start).count();
+        if (duration > 45) {
+            cerr << "iteration:" << j << endl;
 
-            state;
+            delete state;
             return bestState;
         }
     }
@@ -1106,10 +1117,9 @@ int main() {
     GameState *state = new GameState();
 
     while (1) {
-#ifdef PRINT_TIME
-        high_resolution_clock::time_point start = high_resolution_clock::now();
-#endif
-        state->parseInputs();
+
+        high_resolution_clock::time_point start = state->parseInputs();
+
         state->decrementCooldown();
 
         // state->computeActions();
@@ -1118,6 +1128,9 @@ int main() {
 
         state->sendOutputs();
 
+        high_resolution_clock::time_point end = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(end - start).count();
+        cerr << "[Time] " << duration << " ms";
 
 //#ifdef DEBUG_SHIPS
 //        cerr << "[Ally ships]" << endl;
@@ -1129,12 +1142,6 @@ int main() {
 //        }
 //#endif
 
-
-#ifdef PRINT_TIME
-        high_resolution_clock::time_point end = high_resolution_clock::now();
-        auto duration = duration_cast<milliseconds>(end - start).count();
-        cerr << "[Time] " << duration << " ms";
-#endif
     }
 }
 
