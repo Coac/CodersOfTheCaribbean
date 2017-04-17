@@ -965,28 +965,37 @@ public:
     }
 
     bool computeFire(Ship *ship) {
-        int enemyDist = 999;
-        Ship *closestEnemy = (Ship *) Entity::getClosestEntity((Entity **) enemyShips.array, enemyShips.count,
-                                                               ship->bow(),
-                                                               &enemyDist);
-        if (enemyDist < 15 && !ship->isCannonOnCd()) {
-            Coord coord;
-            if (closestEnemy->speed == 0) {
-                coord = closestEnemy->getPosition();
-            } else if (closestEnemy->speed == 1) {
-                coord = closestEnemy->getPosition().neighbor(closestEnemy->getOrientation(),
-                                                             1 + (enemyDist / 3));
-            } else {
-                coord = closestEnemy->getPosition().neighbor(closestEnemy->getOrientation(),
-                                                             2 + (enemyDist / 3));
+        if(ship->isCannonOnCd()) {
+            return false;
+        }
+
+        int closestDist = 999;
+        Coord closestCoord;
+        for(auto enemyShip : enemyShips) {
+            Coord enemyCoord = enemyShip->getPosition();
+            int enemyDist = ship->bow().distanceTo(enemyCoord);
+
+            if(enemyShip->speed > 0) {
+                enemyCoord = enemyShip->getPosition().neighbor(enemyShip->getOrientation(),
+                                                          enemyShip->speed + (enemyDist / 3));
+                enemyDist = ship->bow().distanceTo(enemyCoord);
             }
 
-            if (!coord.isInsideMap()) {
-                coord = closestEnemy->getPosition();
+            if(closestDist > enemyDist) {
+                closestCoord = enemyCoord;
+                closestDist = enemyDist;
             }
-            ship->fire(coord.getX(), coord.getY());
+        }
+        if(closestDist > 10) {
+            return false;
+        }
+
+        if(closestCoord.isInsideMap()) {
+            ship->fire(closestCoord.getX(), closestCoord.getY());
             return true;
         }
+              
+
         return false;
     }
 
