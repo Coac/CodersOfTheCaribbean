@@ -509,7 +509,7 @@ public:
 
     }
 
-    GameState (GameState const& state) {
+    GameState(GameState const &state) {
         this->rumBarrels.count = state.rumBarrels.count;
         this->allyShips.count = state.allyShips.count;
         this->enemyShips.count = state.enemyShips.count;
@@ -523,12 +523,12 @@ public:
 
         this->ships.clear();
         for (int i = 0; i < allyShips.count; ++i) {
-            Ship * clonedShip = new Ship(*state.allyShips.array[i]);
+            Ship *clonedShip = new Ship(*state.allyShips.array[i]);
             this->allyShips.array[i] = clonedShip;
             this->ships.array[i] = clonedShip;
         }
         for (int i = 0; i < enemyShips.count; ++i) {
-            Ship * clonedShip = new Ship(*state.allyShips.array[i]);
+            Ship *clonedShip = new Ship(*state.allyShips.array[i]);
             this->enemyShips.array[i] = clonedShip;
             this->ships.array[i] = clonedShip;
         }
@@ -930,65 +930,82 @@ public:
         }
     }
 
+    void computeRandomActions() {
+
+    }
+
+    bool computeFire(Ship *ship) {
+        int enemyDist = 999;
+        Ship *closestEnemy = (Ship *) Entity::getClosestEntity((Entity **) enemyShips.array, enemyShips.count,
+                                                               ship->bow(),
+                                                               &enemyDist);
+        if (enemyDist < 15 && !ship->isCannonOnCd()) {
+            Coord coord;
+            if (closestEnemy->speed == 0) {
+                coord = closestEnemy->getPosition();
+            } else if (closestEnemy->speed == 1) {
+                coord = closestEnemy->getPosition().neighbor(closestEnemy->getOrientation(),
+                                                             1 + (enemyDist / 3));
+            } else {
+                coord = closestEnemy->getPosition().neighbor(closestEnemy->getOrientation(),
+                                                             2 + (enemyDist / 3));
+            }
+
+            if (!coord.isInsideMap()) {
+                coord = closestEnemy->getPosition();
+            }
+            ship->fire(coord.getX(), coord.getY());
+            return true;
+        }
+        return false;
+    }
+
+    void computeMove(Ship *ship) {
+        int barrelDist = 999;
+        Entity *closestBarrel = ship->getClosestEntity((Entity **) rumBarrels.array, rumBarrels.count,
+                                                       &barrelDist);
+        if (closestBarrel == nullptr) {
+            int enemyDist = 999;
+            Ship *closestEnemy = (Ship *) Entity::getClosestEntity((Entity **) enemyShips.array,
+                                                                   enemyShips.count,
+                                                                   ship->bow(),
+                                                                   &enemyDist);
+            ship->move(closestEnemy->getPosition().x, closestEnemy->getPosition().y);
+        } else {
+            Coord shipCoord = ship->position;
+            Coord fasterCoord = shipCoord.neighbor(ship->orientation, ship->speed + 1);
+            Coord portCoord = shipCoord.neighbor(ship->orientation, ship->speed).neighbor(
+                    (ship->orientation + 1) % 6);
+            Coord starboardCoord = shipCoord.neighbor(ship->orientation, ship->speed).neighbor(
+                    (ship->orientation == 0 ? 5 : ship->orientation - 1));
+
+            int portDist = portCoord.distanceTo(closestBarrel->getPosition());
+            int starDist = starboardCoord.distanceTo(closestBarrel->getPosition());
+            int fastDist = fasterCoord.distanceTo(closestBarrel->getPosition());
+
+
+            if (fasterCoord.isInsideMap() && fastDist <= starDist && fastDist <= portDist) {
+                ship->faster();
+            } else if ((ship->speed > 0 || barrelDist == 1) && portCoord.isInsideMap() &&
+                       portDist <= starDist && portDist <= fastDist) {
+                ship->port();
+            } else if ((ship->speed > 0 || barrelDist == 1) && starboardCoord.isInsideMap() &&
+                       starDist <= fastDist && starDist <= portDist) {
+                ship->starboard();
+            } else {
+                ship->move(closestBarrel->getPosition().getX(), closestBarrel->getPosition().getY());
+            }
+
+        }
+    }
+
     void computeActions() {
         for (auto ship : allyShips) {
             if (ship->isDead) continue;
 
-            int enemyDist = 999;
-            Ship *closestEnemy = (Ship *) Entity::getClosestEntity((Entity **) enemyShips.array, enemyShips.count,
-                                                                   ship->bow(),
-                                                                   &enemyDist);
-            if (enemyDist < 15 && !ship->isCannonOnCd()) {
-                Coord coord;
-                if (closestEnemy->speed == 0) {
-                    coord = closestEnemy->getPosition();
-                } else if (closestEnemy->speed == 1) {
-                    coord = closestEnemy->getPosition().neighbor(closestEnemy->getOrientation(),
-                                                                 1 + (enemyDist / 3));
-                } else {
-                    coord = closestEnemy->getPosition().neighbor(closestEnemy->getOrientation(),
-                                                                 2 + (enemyDist / 3));
-                }
-
-                if (!coord.isInsideMap()) {
-                    coord = closestEnemy->getPosition();
-                }
-                ship->fire(coord.getX(), coord.getY());
-            } else {
-                int barrelDist = 999;
-                Entity *closestBarrel = ship->getClosestEntity((Entity **) rumBarrels.array, rumBarrels.count,
-                                                               &barrelDist);
-                if (closestBarrel == nullptr) {
-                    ship->move(closestEnemy->getPosition().x, closestEnemy->getPosition().y);
-                } else {
-                    Coord shipCoord = ship->position;
-                    Coord fasterCoord = shipCoord.neighbor(ship->orientation, ship->speed + 1);
-                    Coord portCoord = shipCoord.neighbor(ship->orientation, ship->speed).neighbor(
-                            (ship->orientation + 1) % 6);
-                    Coord starboardCoord = shipCoord.neighbor(ship->orientation, ship->speed).neighbor(
-                            (ship->orientation == 0 ? 5 : ship->orientation - 1));
-
-                    int portDist = portCoord.distanceTo(closestBarrel->getPosition());
-                    int starDist = starboardCoord.distanceTo(closestBarrel->getPosition());
-                    int fastDist = fasterCoord.distanceTo(closestBarrel->getPosition());
-
-
-                    if (fasterCoord.isInsideMap() && fastDist <= starDist && fastDist <= portDist) {
-                        ship->faster();
-                    } else if ((ship->speed > 0 || barrelDist == 1) && portCoord.isInsideMap() &&
-                               portDist <= starDist && portDist <= fastDist) {
-                        ship->port();
-                    } else if ((ship->speed > 0 || barrelDist == 1) && starboardCoord.isInsideMap() &&
-                               starDist <= fastDist && starDist <= portDist) {
-                        ship->starboard();
-                    } else {
-                        ship->move(closestBarrel->getPosition().getX(), closestBarrel->getPosition().getY());
-                    }
-
-                }
-
+            if (!this->computeFire(ship)) {
+                this->computeMove(ship);
             }
-
         }
     }
 
