@@ -1007,6 +1007,20 @@ public:
         }
     }
 
+    int eval() {
+        int score = 0;
+        for (auto ship : allyShips) {
+            if (ship->isDead) continue;
+            score += ship->health;
+        }
+        for (auto ship : enemyShips) {
+            if (ship->isDead) continue;
+            score -= ship->health;
+        }
+
+        return score;
+    }
+
     void computeActions() {
         for (auto ship : allyShips) {
             if (ship->isDead) continue;
@@ -1046,6 +1060,7 @@ int main() {
         clonedState->moveShips();
         clonedState->rotateShips();
         clonedState->explodeShips();
+        cerr << "score:" << clonedState->eval() << endl;
 
 #ifdef DEBUG_SHIPS
         cerr << "[Ally ships]" << endl;
