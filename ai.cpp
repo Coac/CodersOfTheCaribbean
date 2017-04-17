@@ -88,14 +88,20 @@ public:
 
     static int directions[6][3];
 
+    CubeCoordinate() {
+        this->x = -1;
+        this->y = -1;
+        this->z = -1;
+    }
+
     CubeCoordinate(int x, int y, int z) {
         this->x = x;
         this->y = y;
         this->z = z;
     }
 
-    int distanceTo(CubeCoordinate *dst) {
-        return (abs(x - dst->x) + abs(y - dst->y) + abs(z - dst->z)) / 2;
+    int distanceTo(CubeCoordinate dst) {
+        return (abs(x - dst.x) + abs(y - dst.y) + abs(z - dst.z)) / 2;
     }
 };
 
@@ -173,15 +179,19 @@ public:
         return coord;
     }
 
-    CubeCoordinate *toCubeCoordinate() {
+    CubeCoordinate toCubeCoordinate() {
+        CubeCoordinate coord;
         int xp = x - (y - (y & 1)) / 2;
         int zp = y;
         int yp = -(xp + zp);
-        return new CubeCoordinate(xp, yp, zp);
+        coord.x = xp;
+        coord.y = yp;
+        coord.z = zp;
+        return coord;
     }
 
     int distanceTo(Coord dst) {
-        return this->toCubeCoordinate()->distanceTo(dst.toCubeCoordinate());
+        return this->toCubeCoordinate().distanceTo(dst.toCubeCoordinate());
     }
 };
 
@@ -281,7 +291,6 @@ public:
     Coord newSternCoordinate;
     bool isDead = false;
 
-
     Action action;
     int targetX;
     int targetY;
@@ -296,6 +305,13 @@ public:
         this->action = FASTER;
     }
 
+    friend ostream &operator<<(ostream &os, const Ship &ship) {
+        os << " orientation: " << ship.orientation << " newOrientation: "
+           << ship.newOrientation << " speed: " << ship.speed << " health: " << ship.health << " owner: " << ship.owner
+           << " cannonCooldown: " << ship.cannonCooldown << " mineCooldown: " << ship.mineCooldown;
+        return os;
+    }
+
     bool heal(unsigned int amount) {
         health += amount;
         if (health > MAX_SHIP_HEALTH) {
@@ -305,8 +321,9 @@ public:
 
     bool damage(unsigned int amount) {
         health -= amount;
-        if (health < 0) {
+        if (health <= 0) {
             health = 0;
+            isDead = true;
         }
     }
 
@@ -453,10 +470,6 @@ public:
     RumBarrel(int id, int x, int y, int health) : Entity(BARREL, id, x, y) {
         this->health = health;
     }
-
-    RumBarrel *clone() {
-        return new RumBarrel(id, this->position.x, this->position.y, health);
-    }
 };
 
 class Mine : public Entity {
@@ -492,40 +505,57 @@ public:
 
     List<Coord, 100> cannonBallExplosions;
 
-    GameState *clone() {
-        GameState *cloned = new GameState();
-        cloned->rumBarrels.count = this->rumBarrels.count;
-        cloned->allyShips.count = this->allyShips.count;
-        cloned->enemyShips.count = this->enemyShips.count;
-        cloned->mines.count = this->mines.count;
-        cloned->cannonBalls.count = this->cannonBalls.count;
-        cloned->ships.count = this->ships.count;
+    GameState() {
+
+    }
+
+    GameState (GameState const& state) {
+        this->rumBarrels.count = state.rumBarrels.count;
+        this->allyShips.count = state.allyShips.count;
+        this->enemyShips.count = state.enemyShips.count;
+        this->mines.count = state.mines.count;
+        this->cannonBalls.count = state.cannonBalls.count;
+        this->ships.count = state.ships.count;
 
         for (int i = 0; i < rumBarrels.count; ++i) {
-            cloned->rumBarrels.array[i] = this->rumBarrels.array[i]->clone();
-        }
-        for (int i = 0; i < allyShips.count; ++i) {
-            cloned->allyShips.array[i] = this->allyShips.array[i];
-        }
-        for (int i = 0; i < enemyShips.count; ++i) {
-            cloned->enemyShips.array[i] = this->enemyShips.array[i];
-        }
-        for (int i = 0; i < ships.count; ++i) {
-            cloned->ships.array[i] = this->ships.array[i];
-        }
-        for (int i = 0; i < mines.count; ++i) {
-            cloned->mines.array[i] = this->mines.array[i];
-        }
-        for (int i = 0; i < cannonBalls.count; ++i) {
-            cloned->cannonBalls.array[i] = this->cannonBalls.array[i];
+            this->rumBarrels.array[i] = new RumBarrel(*state.rumBarrels.array[i]);
         }
 
-        return cloned;
+        this->ships.clear();
+        for (int i = 0; i < allyShips.count; ++i) {
+            Ship * clonedShip = new Ship(*state.allyShips.array[i]);
+            this->allyShips.array[i] = clonedShip;
+            this->ships.array[i] = clonedShip;
+        }
+        for (int i = 0; i < enemyShips.count; ++i) {
+            Ship * clonedShip = new Ship(*state.allyShips.array[i]);
+            this->enemyShips.array[i] = clonedShip;
+            this->ships.array[i] = clonedShip;
+        }
+
+        for (int i = 0; i < mines.count; ++i) {
+            this->mines.array[i] = new Mine(*state.mines.array[i]);
+        }
+        for (int i = 0; i < cannonBalls.count; ++i) {
+            this->cannonBalls.array[i] = new CannonBall(*state.cannonBalls.array[i]);
+        }
     }
 
     ~GameState() {
         for (int i = 0; i < rumBarrels.count; ++i) {
             delete this->rumBarrels.array[i];
+        }
+        for (int i = 0; i < enemyShips.count; ++i) {
+            delete this->enemyShips.array[i];
+        }
+        for (int i = 0; i < allyShips.count; ++i) {
+            delete this->allyShips.array[i];
+        }
+        for (int i = 0; i < mines.count; ++i) {
+            delete this->mines.array[i];
+        }
+        for (int i = 0; i < cannonBalls.count; ++i) {
+            delete this->cannonBalls.array[i];
         }
     }
 
@@ -563,7 +593,7 @@ public:
     }
 
     void applyActions() {
-        for (auto ship : ships) {
+        for (auto ship : this->ships) {
             if (ship->isDead) continue;
 
             if (ship->mineCooldown > 0) {
@@ -969,8 +999,6 @@ public:
             ship->sendOutput();
         }
     }
-
-
 };
 
 int main() {
@@ -1003,20 +1031,21 @@ int main() {
 //#endif
 //        delete clonedState;
 
-//        for (int i = 0; i < 10000; ++i) {
-//            GameState *clonedState = state->clone();
-//
-//            clonedState->moveCannonballs();
-//            clonedState->decrementRum();
-//
-//            clonedState->applyActions();
-//            clonedState->moveShips();
-//            clonedState->rotateShips();
-//
-//            clonedState->explodeShips();
-//
-//            delete clonedState;
-//        }
+        for (int i = 0; i < 1; ++i) {
+            GameState *clonedState = new GameState(*state);
+
+            clonedState->moveCannonballs();
+            clonedState->decrementRum();
+
+            clonedState->applyActions();
+            clonedState->moveShips();
+            clonedState->rotateShips();
+
+            clonedState->explodeShips();
+
+            delete clonedState;
+        }
+
 
 #ifdef PRINT_TIME
         high_resolution_clock::time_point t2 = high_resolution_clock::now();
