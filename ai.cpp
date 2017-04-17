@@ -154,6 +154,10 @@ public:
         return x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT;
     }
 
+    bool isBorderMap() {
+        return x == 0 || y == 0 || x == MAP_WIDTH - 1 || y == MAP_HEIGHT - 1;
+    }
+
     Coord neighbor(int orientation) {
         int newY, newX;
         if (this->y % 2 == 1) {
@@ -1020,7 +1024,18 @@ public:
         for (auto ship : allyShips) {
             if (ship->isDead) continue;
             score += ship->health;
+
+            int barrelDist = 0;
+            Entity *closestBarrel = ship->getClosestEntity((Entity **) rumBarrels.array, rumBarrels.count,
+                                                           &barrelDist);
+            score -= barrelDist;
+
+
+            if (ship->position.isBorderMap()) {
+                score -= 100;
+            }
         }
+
         for (auto ship : enemyShips) {
             if (ship->isDead) continue;
             score -= ship->health;
@@ -1048,7 +1063,7 @@ public:
     }
 };
 
-GameState* full_random_strategy(GameState* state) {
+GameState *full_random_strategy(GameState *state) {
     GameState *bestState = new GameState(*state);
     int bestScore = -999;
     for (int j = 0; j < 500; ++j) {
@@ -1057,14 +1072,14 @@ GameState* full_random_strategy(GameState* state) {
 
         GameState *endState = new GameState(*baseState);
         endState->simulateTurn();
-        for (int i = 0; i < 10; ++i) {
+        for (int i = 0; i < 5; ++i) {
             endState->computeRandomActions();
             endState->simulateTurn();
         }
         int score = endState->eval();
         delete endState;
 
-        if(score > bestScore) {
+        if (score > bestScore) {
             delete bestState;
             bestState = baseState;
             bestScore = score;
@@ -1089,9 +1104,9 @@ int main() {
         state->parseInputs();
         state->decrementCooldown();
 
-        state->computeActions();
+        // state->computeActions();
 
-        //state = full_random_strategy(state);
+        state = full_random_strategy(state);
 
         state->sendOutputs();
 
