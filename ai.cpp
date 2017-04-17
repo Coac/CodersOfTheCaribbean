@@ -14,7 +14,7 @@ using namespace std::chrono;
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
 
-#define DEBUG_SIMU
+//#define DEBUG_SIMU
 #define DEBUG_SHIPS
 #define PRINT_TIME
 
@@ -515,22 +515,21 @@ public:
         this->enemyShips.count = state.enemyShips.count;
         this->mines.count = state.mines.count;
         this->cannonBalls.count = state.cannonBalls.count;
-        this->ships.count = state.ships.count;
+        this->ships.count = 0;
 
         for (int i = 0; i < rumBarrels.count; ++i) {
             this->rumBarrels.array[i] = new RumBarrel(*state.rumBarrels.array[i]);
         }
 
-        this->ships.clear();
         for (int i = 0; i < allyShips.count; ++i) {
             Ship *clonedShip = new Ship(*state.allyShips.array[i]);
             this->allyShips.array[i] = clonedShip;
-            this->ships.array[i] = clonedShip;
+            this->ships.add(clonedShip);
         }
         for (int i = 0; i < enemyShips.count; ++i) {
-            Ship *clonedShip = new Ship(*state.allyShips.array[i]);
+            Ship *clonedShip = new Ship(*state.enemyShips.array[i]);
             this->enemyShips.array[i] = clonedShip;
-            this->ships.array[i] = clonedShip;
+            this->ships.add(clonedShip);
         }
 
         for (int i = 0; i < mines.count; ++i) {
@@ -818,7 +817,6 @@ public:
         for (int i = 0; i < cannonBallExplosions.count; ++i) {
             Coord position = cannonBallExplosions.array[i];
 
-
             for (auto ship : ships) {
                 if (ship->isDead) continue;
 
@@ -1048,11 +1046,13 @@ int main() {
         clonedState->moveShips();
         clonedState->rotateShips();
         clonedState->explodeShips();
+
 #ifdef DEBUG_SHIPS
         cerr << "[Ally ships]" << endl;
         for (auto ship : clonedState->allyShips) {
+            if (ship->isDead) continue;
             cerr << "id:" << ship->id << " x:" << ship->position.x << " y:" << ship->position.y << " health:"
-                 << ship->health
+                 << ship->health << " isDead:" << ship->isDead
                  << " orientation:" << ship->orientation << endl;
         }
 #endif
