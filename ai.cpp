@@ -14,7 +14,7 @@ using namespace std::chrono;
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
 
-//#define DEBUG_SIMU
+#define DEBUG_SIMU
 #define DEBUG_SHIPS
 #define PRINT_TIME
 
@@ -77,7 +77,7 @@ enum EntityType {
 };
 
 enum Action {
-    FASTER, SLOWER, PORT, STARBOARD, FIRE, MOVE
+    FASTER, SLOWER, PORT, STARBOARD, MOVE, FIRE
 };
 
 class CubeCoordinate {
@@ -931,7 +931,17 @@ public:
     }
 
     void computeRandomActions() {
+        for (auto ship : allyShips) {
+            if (ship->isDead) continue;
 
+            if (!this->computeFire(ship)) {
+                this->computeRandomMove(ship);
+            }
+        }
+    }
+
+    void computeRandomMove(Ship *ship) {
+        ship->action = static_cast<Action>(rand() % FIRE);
     }
 
     bool computeFire(Ship *ship) {
@@ -1031,37 +1041,37 @@ int main() {
         state->computeActions();
         state->sendOutputs();
 
-//        GameState *clonedState = state->clone();
-//        clonedState->moveCannonballs();
-//        clonedState->decrementRum();
-//        clonedState->applyActions();
-//        clonedState->moveShips();
-//        clonedState->rotateShips();
-//        clonedState->explodeShips();
-//#ifdef DEBUG_SHIPS
-//        cerr << "[Ally ships]" << endl;
-//        for (auto ship : clonedState->allyShips) {
-//            cerr << "id:" << ship->id << " x:" << ship->position.x << " y:" << ship->position.y << " health:"
-//                 << ship->health
-//                 << " orientation:" << ship->orientation << endl;
-//        }
-//#endif
-//        delete clonedState;
-
-        for (int i = 0; i < 1; ++i) {
-            GameState *clonedState = new GameState(*state);
-
-            clonedState->moveCannonballs();
-            clonedState->decrementRum();
-
-            clonedState->applyActions();
-            clonedState->moveShips();
-            clonedState->rotateShips();
-
-            clonedState->explodeShips();
-
-            delete clonedState;
+        GameState *clonedState = new GameState(*state);
+        clonedState->moveCannonballs();
+        clonedState->decrementRum();
+        clonedState->applyActions();
+        clonedState->moveShips();
+        clonedState->rotateShips();
+        clonedState->explodeShips();
+#ifdef DEBUG_SHIPS
+        cerr << "[Ally ships]" << endl;
+        for (auto ship : clonedState->allyShips) {
+            cerr << "id:" << ship->id << " x:" << ship->position.x << " y:" << ship->position.y << " health:"
+                 << ship->health
+                 << " orientation:" << ship->orientation << endl;
         }
+#endif
+        delete clonedState;
+
+//        for (int i = 0; i < 1; ++i) {
+//            GameState *clonedState = new GameState(*state);
+//
+//            clonedState->moveCannonballs();
+//            clonedState->decrementRum();
+//
+//            clonedState->applyActions();
+//            clonedState->moveShips();
+//            clonedState->rotateShips();
+//
+//            clonedState->explodeShips();
+//
+//            delete clonedState;
+//        }
 
 
 #ifdef PRINT_TIME
