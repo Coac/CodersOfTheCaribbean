@@ -506,6 +506,12 @@ public:
 
 class CannonBall : public Entity {
 public:
+    CannonBall() : Entity(){
+        type = CANNONBALL;
+        ownerEntityId = -1;
+        remainingTurns = 999;
+    }
+
     int ownerEntityId;
     int remainingTurns;
 
@@ -527,7 +533,7 @@ public:
 
     List<Mine, MAX_MINES> mines;
 
-    List<CannonBall *, 100> cannonBalls;
+    List<CannonBall, 100> cannonBalls;
 
     List<Coord, 100> cannonBallExplosions;
 
@@ -562,7 +568,7 @@ public:
             this->mines.array[i] = state.mines.array[i];
         }
         for (int i = 0; i < cannonBalls.count; ++i) {
-            this->cannonBalls.array[i] = new CannonBall(*state.cannonBalls.array[i]);
+            this->cannonBalls.array[i] = state.cannonBalls.array[i];
         }
     }
 
@@ -573,31 +579,28 @@ public:
         for (int i = 0; i < allyShips.count; ++i) {
             delete this->allyShips.array[i];
         }
-        for (int i = 0; i < cannonBalls.count; ++i) {
-            delete this->cannonBalls.array[i];
-        }
     }
 
     void moveCannonballs() {
         for (int i = 0; i < cannonBalls.count; ++i) {
-            CannonBall *ball = cannonBalls.array[i];
+            CannonBall ball = cannonBalls.array[i];
 
-            if (ball->remainingTurns == 0) {
+            if (ball.remainingTurns == 0) {
                 cannonBalls.removeAt(i);
                 --i;
                 continue;
-            } else if (ball->remainingTurns > 0) {
-                ball->remainingTurns--;
+            } else if (ball.remainingTurns > 0) {
+                ball.remainingTurns--;
             }
 
 #ifdef DEBUG_SIMU
-            cerr << "CannonBall x:" << ball->position.x << " y:" << ball->position.y << " remainingTurns:"
-                 << ball->remainingTurns << endl;
+            cerr << "CannonBall x:" << ball.position.x << " y:" << ball.position.y << " remainingTurns:"
+                 << ball.remainingTurns << endl;
 #endif
 
 
-            if (ball->remainingTurns == 0) {
-                cannonBallExplosions.add(ball->position);
+            if (ball.remainingTurns == 0) {
+                cannonBallExplosions.add(ball.position);
             }
         }
     }
@@ -668,7 +671,12 @@ public:
                     int distance = ship->bow().distanceTo(target);
                     if (target.isInsideMap() && distance <= FIRE_DISTANCE_MAX && ship->cannonCooldown == 0) {
                         int travelTime = (int) (1 + round(ship->bow().distanceTo(target) / 3.0));
-                        cannonBalls.add(new CannonBall(9999, target.x, target.y, ship->id, travelTime));
+                        cannonBalls.array[cannonBalls.count].id = 9999;
+                        cannonBalls.array[cannonBalls.count].position.x = target.x;
+                        cannonBalls.array[cannonBalls.count].position.y = target.y;
+                        cannonBalls.array[cannonBalls.count].ownerEntityId = ship->id;
+                        cannonBalls.array[cannonBalls.count].remainingTurns = travelTime;
+                        ++cannonBalls.count;
                         ship->cannonCooldown = COOLDOWN_CANNON;
                     }
                     break;
@@ -883,9 +891,6 @@ public:
         }
         enemyShips.clear();
         mines.clear();
-        for (int i = 0; i < cannonBalls.count; ++i) {
-            delete this->cannonBalls.array[i];
-        }
         cannonBalls.clear();
 
         ships.clear();
@@ -947,7 +952,12 @@ public:
                 mines.array[mines.count].position.y = y;
                 ++mines.count;
             } else if (entityType == "CANNONBALL") {
-                cannonBalls.add(new CannonBall(entityId, x, y, arg1, arg2));
+                cannonBalls.array[cannonBalls.count].id = entityId;
+                cannonBalls.array[cannonBalls.count].position.x = x;
+                cannonBalls.array[cannonBalls.count].position.y = y;
+                cannonBalls.array[cannonBalls.count].ownerEntityId = arg1;
+                cannonBalls.array[cannonBalls.count].remainingTurns = arg2;
+                ++cannonBalls.count;
             }
         }
 
