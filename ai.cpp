@@ -485,7 +485,7 @@ class RumBarrel : public Entity {
 public:
     int health;
 
-    RumBarrel() : Entity(){
+    RumBarrel() : Entity() {
         type = BARREL;
         health = -999;
     }
@@ -497,16 +497,17 @@ public:
 
 class Mine : public Entity {
 public:
-    Mine() : Entity(){
+    Mine() : Entity() {
         type = MINE;
     }
+
     Mine(int id, int x, int y) : Entity(MINE, id, x, y) {
     }
 };
 
 class CannonBall : public Entity {
 public:
-    CannonBall() : Entity(){
+    CannonBall() : Entity() {
         type = CANNONBALL;
         ownerEntityId = -1;
         remainingTurns = 999;
@@ -978,6 +979,7 @@ public:
         for (auto ship : allyShips) {
             if (ship->isDead) continue;
 
+
             if (!this->computeFire(ship)) {
                 this->computeRandomMove(ship);
             }
@@ -989,36 +991,36 @@ public:
     }
 
     bool computeFire(Ship *ship) {
-        if(ship->isCannonOnCd()) {
+        if (ship->isCannonOnCd()) {
             return false;
         }
 
         int closestDist = 999;
         Coord closestCoord;
-        for(auto enemyShip : enemyShips) {
+        for (auto enemyShip : enemyShips) {
             Coord enemyCoord = enemyShip->getPosition();
             int enemyDist = ship->bow().distanceTo(enemyCoord);
 
-            if(enemyShip->speed > 0) {
+            if (enemyShip->speed > 0) {
                 enemyCoord = enemyShip->getPosition().neighbor(enemyShip->getOrientation(),
-                                                          enemyShip->speed + (enemyDist / 3));
+                                                               enemyShip->speed + (enemyDist / 3));
                 enemyDist = ship->bow().distanceTo(enemyCoord);
             }
 
-            if(closestDist > enemyDist) {
+            if (closestDist > enemyDist) {
                 closestCoord = enemyCoord;
                 closestDist = enemyDist;
             }
         }
-        if(closestDist > 10) {
+        if (closestDist > 10) {
             return false;
         }
 
-        if(closestCoord.isInsideMap()) {
+        if (closestCoord.isInsideMap()) {
             ship->fire(closestCoord.getX(), closestCoord.getY());
             return true;
         }
-              
+
 
         return false;
     }
