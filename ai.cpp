@@ -486,6 +486,7 @@ public:
     int health;
 
     RumBarrel() : Entity(){
+        type = BARREL;
         health = -999;
     }
 
@@ -496,6 +497,9 @@ public:
 
 class Mine : public Entity {
 public:
+    Mine() : Entity(){
+        type = MINE;
+    }
     Mine(int id, int x, int y) : Entity(MINE, id, x, y) {
     }
 };
@@ -521,7 +525,7 @@ public:
 
     List<Ship *, 6> ships;
 
-    List<Mine *, MAX_MINES> mines;
+    List<Mine, MAX_MINES> mines;
 
     List<CannonBall *, 100> cannonBalls;
 
@@ -555,7 +559,7 @@ public:
         }
 
         for (int i = 0; i < mines.count; ++i) {
-            this->mines.array[i] = new Mine(*state.mines.array[i]);
+            this->mines.array[i] = state.mines.array[i];
         }
         for (int i = 0; i < cannonBalls.count; ++i) {
             this->cannonBalls.array[i] = new CannonBall(*state.cannonBalls.array[i]);
@@ -568,9 +572,6 @@ public:
         }
         for (int i = 0; i < allyShips.count; ++i) {
             delete this->allyShips.array[i];
-        }
-        for (int i = 0; i < mines.count; ++i) {
-            delete this->mines.array[i];
         }
         for (int i = 0; i < cannonBalls.count; ++i) {
             delete this->cannonBalls.array[i];
@@ -770,15 +771,15 @@ public:
 
         // Collision with the mines
         for (int i = 0; i < mines.count; ++i) {
-            Mine *mine = mines.array[i];
-            if (mine->position.equals(bow) || mine->position.equals(stern) || mine->position.equals(center)) {
+            Mine mine = mines.array[i];
+            if (mine.position.equals(bow) || mine.position.equals(stern) || mine.position.equals(center)) {
                 ship->damage(MINE_DAMAGE);
 #ifdef DEBUG_SIMU
                 cerr << endl;
                 cerr << "Bow x:" << bow.x << " y:" << bow.y << endl;
                 cerr << "Stern x:" << stern.x << " y:" << stern.y << endl;
                 cerr << "Center x:" << center.x << " y:" << center.y << endl;
-                cerr << "MineExplosion x:" << mine->position.x << " y:" << mine->position.y << " victim:"
+                cerr << "MineExplosion x:" << mine.position.x << " y:" << mine.position.y << " victim:"
                      << ship->id << " dmg:" << MINE_DAMAGE << endl;
                 cerr << endl;
 #endif
@@ -881,9 +882,6 @@ public:
             delete this->enemyShips.array[i];
         }
         enemyShips.clear();
-        for (int i = 0; i < mines.count; ++i) {
-            delete this->mines.array[i];
-        }
         mines.clear();
         for (int i = 0; i < cannonBalls.count; ++i) {
             delete this->cannonBalls.array[i];
@@ -944,7 +942,10 @@ public:
                 rumBarrels.array[rumBarrels.count].health = arg1;
                 ++rumBarrels.count;
             } else if (entityType == "MINE") {
-                mines.add(new Mine(entityId, x, y));
+                mines.array[mines.count].id = entityId;
+                mines.array[mines.count].position.x = x;
+                mines.array[mines.count].position.y = y;
+                ++mines.count;
             } else if (entityType == "CANNONBALL") {
                 cannonBalls.add(new CannonBall(entityId, x, y, arg1, arg2));
             }
