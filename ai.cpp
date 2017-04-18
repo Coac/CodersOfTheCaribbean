@@ -48,6 +48,10 @@ public:
     T array[N + 1];
     int count = 0;
 
+    List() {
+
+    }
+
     void add(T element) {
         array[count] = element;
         ++count;
@@ -73,7 +77,7 @@ public:
 };
 
 enum EntityType {
-    SHIP, BARREL, MINE, CANNONBALL
+    SHIP, BARREL, MINE, CANNONBALL, NONE
 };
 
 enum Action {
@@ -217,6 +221,13 @@ public:
     int id;
     EntityType type;
     Coord position;
+
+    Entity() {
+        type = EntityType::NONE;
+        id = -1;
+        position.x = -1;
+        position.y = -1;
+    }
 
     Entity(EntityType type, int id, int x, int y) {
         this->id = id;
@@ -474,6 +485,10 @@ class RumBarrel : public Entity {
 public:
     int health;
 
+    RumBarrel() : Entity(){
+        health = -999;
+    }
+
     RumBarrel(int id, int x, int y, int health) : Entity(BARREL, id, x, y) {
         this->health = health;
     }
@@ -498,7 +513,7 @@ public:
 
 class GameState {
 public:
-    List<RumBarrel *, MAX_RUM_BARRELS> rumBarrels;
+    List<RumBarrel, MAX_RUM_BARRELS> rumBarrels;
 
     List<Ship *, 3> allyShips;
 
@@ -525,7 +540,7 @@ public:
         this->ships.count = 0;
 
         for (int i = 0; i < rumBarrels.count; ++i) {
-            this->rumBarrels.array[i] = new RumBarrel(*state.rumBarrels.array[i]);
+            this->rumBarrels.array[i] = state.rumBarrels.array[i];
         }
 
         for (int i = 0; i < allyShips.count; ++i) {
@@ -548,9 +563,6 @@ public:
     }
 
     ~GameState() {
-        for (int i = 0; i < rumBarrels.count; ++i) {
-            delete this->rumBarrels.array[i];
-        }
         for (int i = 0; i < enemyShips.count; ++i) {
             delete this->enemyShips.array[i];
         }
@@ -738,16 +750,16 @@ public:
 
         // Collision with the barrels
         for (int i = 0; i < rumBarrels.count; ++i) {
-            RumBarrel *barrel = rumBarrels.array[i];
-            if (barrel->position.equals(bow) || barrel->position.equals(stern) || barrel->position.equals(center)) {
-                ship->heal(barrel->health);
+            RumBarrel barrel = rumBarrels.array[i];
+            if (barrel.position.equals(bow) || barrel.position.equals(stern) || barrel.position.equals(center)) {
+                ship->heal(barrel.health);
 
 #ifdef DEBUG_SIMU
                 cerr << endl;
                 cerr << "Bow x:" << bow.x << " y:" << bow.y << endl;
                 cerr << "Stern x:" << stern.x << " y:" << stern.y << endl;
                 cerr << "Center x:" << center.x << " y:" << center.y << endl;
-                cerr << "Barrel health:" << barrel->health << " x:" << barrel->position.x << " y:" << barrel->position.y
+                cerr << "Barrel health:" << barrel.health << " x:" << barrel.position.x << " y:" << barrel.position.y
                      << " victim:" << ship->id << endl;
                 cerr << endl;
 #endif
@@ -864,9 +876,6 @@ public:
     }
 
     void clearLists() {
-        for (int i = 0; i < rumBarrels.count; ++i) {
-            delete this->rumBarrels.array[i];
-        }
         rumBarrels.clear();
         for (int i = 0; i < enemyShips.count; ++i) {
             delete this->enemyShips.array[i];
@@ -929,7 +938,11 @@ public:
                     ships.add(ship);
                 }
             } else if (entityType == "BARREL") {
-                rumBarrels.add(new RumBarrel(entityId, x, y, arg1));
+                rumBarrels.array[rumBarrels.count].id = entityId;
+                rumBarrels.array[rumBarrels.count].position.x = x;
+                rumBarrels.array[rumBarrels.count].position.y = y;
+                rumBarrels.array[rumBarrels.count].health = arg1;
+                ++rumBarrels.count;
             } else if (entityType == "MINE") {
                 mines.add(new Mine(entityId, x, y));
             } else if (entityType == "CANNONBALL") {
@@ -999,44 +1012,44 @@ public:
         return false;
     }
 
-    void computeMove(Ship *ship) {
-        int barrelDist = 999;
-        Entity *closestBarrel = ship->getClosestEntity((Entity **) rumBarrels.array, rumBarrels.count,
-                                                       &barrelDist);
-        if (closestBarrel == nullptr) {
-            int enemyDist = 999;
-            Ship *closestEnemy = (Ship *) Entity::getClosestEntity((Entity **) enemyShips.array,
-                                                                   enemyShips.count,
-                                                                   ship->bow(),
-                                                                   &enemyDist);
-            ship->move(closestEnemy->getPosition().x, closestEnemy->getPosition().y);
-        } else {
-            Coord shipCoord = ship->position;
-            Coord fasterCoord = shipCoord.neighbor(ship->orientation, ship->speed + 1);
-            Coord portCoord = shipCoord.neighbor(ship->orientation, ship->speed).neighbor(
-                    (ship->orientation + 1) % 6);
-            Coord starboardCoord = shipCoord.neighbor(ship->orientation, ship->speed).neighbor(
-                    (ship->orientation == 0 ? 5 : ship->orientation - 1));
-
-            int portDist = portCoord.distanceTo(closestBarrel->getPosition());
-            int starDist = starboardCoord.distanceTo(closestBarrel->getPosition());
-            int fastDist = fasterCoord.distanceTo(closestBarrel->getPosition());
-
-
-            if (fasterCoord.isInsideMap() && fastDist <= starDist && fastDist <= portDist) {
-                ship->faster();
-            } else if ((ship->speed > 0 || barrelDist == 1) && portCoord.isInsideMap() &&
-                       portDist <= starDist && portDist <= fastDist) {
-                ship->port();
-            } else if ((ship->speed > 0 || barrelDist == 1) && starboardCoord.isInsideMap() &&
-                       starDist <= fastDist && starDist <= portDist) {
-                ship->starboard();
-            } else {
-                ship->move(closestBarrel->getPosition().getX(), closestBarrel->getPosition().getY());
-            }
-
-        }
-    }
+//    void computeMove(Ship *ship) {
+//        int barrelDist = 999;
+//        Entity *closestBarrel = ship->getClosestEntity((Entity **) rumBarrels.array, rumBarrels.count,
+//                                                       &barrelDist);
+//        if (closestBarrel == nullptr) {
+//            int enemyDist = 999;
+//            Ship *closestEnemy = (Ship *) Entity::getClosestEntity((Entity **) enemyShips.array,
+//                                                                   enemyShips.count,
+//                                                                   ship->bow(),
+//                                                                   &enemyDist);
+//            ship->move(closestEnemy->getPosition().x, closestEnemy->getPosition().y);
+//        } else {
+//            Coord shipCoord = ship->position;
+//            Coord fasterCoord = shipCoord.neighbor(ship->orientation, ship->speed + 1);
+//            Coord portCoord = shipCoord.neighbor(ship->orientation, ship->speed).neighbor(
+//                    (ship->orientation + 1) % 6);
+//            Coord starboardCoord = shipCoord.neighbor(ship->orientation, ship->speed).neighbor(
+//                    (ship->orientation == 0 ? 5 : ship->orientation - 1));
+//
+//            int portDist = portCoord.distanceTo(closestBarrel->getPosition());
+//            int starDist = starboardCoord.distanceTo(closestBarrel->getPosition());
+//            int fastDist = fasterCoord.distanceTo(closestBarrel->getPosition());
+//
+//
+//            if (fasterCoord.isInsideMap() && fastDist <= starDist && fastDist <= portDist) {
+//                ship->faster();
+//            } else if ((ship->speed > 0 || barrelDist == 1) && portCoord.isInsideMap() &&
+//                       portDist <= starDist && portDist <= fastDist) {
+//                ship->port();
+//            } else if ((ship->speed > 0 || barrelDist == 1) && starboardCoord.isInsideMap() &&
+//                       starDist <= fastDist && starDist <= portDist) {
+//                ship->starboard();
+//            } else {
+//                ship->move(closestBarrel->getPosition().getX(), closestBarrel->getPosition().getY());
+//            }
+//
+//        }
+//    }
 
     int eval() {
         int score = 0;
@@ -1044,10 +1057,15 @@ public:
             if (ship->isDead) continue;
             score += ship->health;
 
-            int barrelDist = 0;
-            Entity *closestBarrel = ship->getClosestEntity((Entity **) rumBarrels.array, rumBarrels.count,
-                                                           &barrelDist);
-            score -= barrelDist;
+            int closestBarrelDist = 999;
+            for (int i = 0; i < rumBarrels.count; ++i) {
+                RumBarrel barrel = rumBarrels.array[i];
+                int dist = ship->distanceTo(barrel);
+                if (dist < closestBarrelDist) {
+                    closestBarrelDist = dist;
+                }
+            }
+            score -= closestBarrelDist;
 
 
             score += ship->speedSum / 2;
@@ -1061,15 +1079,15 @@ public:
         return score;
     }
 
-    void computeActions() {
-        for (auto ship : allyShips) {
-            if (ship->isDead) continue;
-
-            if (!this->computeFire(ship)) {
-                this->computeMove(ship);
-            }
-        }
-    }
+//    void computeActions() {
+//        for (auto ship : allyShips) {
+//            if (ship->isDead) continue;
+//
+//            if (!this->computeFire(ship)) {
+//                this->computeMove(ship);
+//            }
+//        }
+//    }
 
     void sendOutputs() {
         for (auto ship : allyShips) {
