@@ -886,17 +886,16 @@ public:
     }
 
     high_resolution_clock::time_point parseInputs() {
-        clearLists();
-
-        for (auto ship : ships) {
-            ship->isDead = true;
-        }
-
         int myShipCount; // the number of remaining ships
         cin >> myShipCount;
         cin.ignore();
 
-        high_resolution_clock::time_point time = high_resolution_clock::now();
+        clearLists();
+        for (auto ship : ships) {
+            ship->isDead = true;
+        }
+
+        auto time = high_resolution_clock::now();
 
         int entityCount; // the number of entities (e.g. ships, mines or cannonballs)
         cin >> entityCount;
@@ -1142,7 +1141,7 @@ GameState *full_random_strategy(GameState *state, high_resolution_clock::time_po
             delete baseState;
         }
 
-        high_resolution_clock::time_point end = high_resolution_clock::now();
+        auto end = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(end - start).count();
         if (duration > 30) {
 //            cerr << "iteration:" << j << endl;
@@ -1161,7 +1160,7 @@ int main() {
 
     while (1) {
 
-        high_resolution_clock::time_point start = state->parseInputs();
+        auto start = state->parseInputs();
 
         state->decrementCooldown();
 
