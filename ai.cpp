@@ -524,9 +524,7 @@ public:
     List<RumBarrel, MAX_RUM_BARRELS> rumBarrels;
 
     List<Ship *, 3> allyShips;
-
     List<Ship *, 3> enemyShips;
-
     List<Ship *, 6> ships;
 
     List<Mine, MAX_MINES> mines;
@@ -882,10 +880,6 @@ public:
 
     void clearLists() {
         rumBarrels.clear();
-        for (int i = 0; i < enemyShips.count; ++i) {
-            delete this->enemyShips.array[i];
-        }
-        enemyShips.clear();
         mines.clear();
         cannonBalls.clear();
 
@@ -923,18 +917,17 @@ public:
 
             if (entityType == "SHIP") {
                 Ship *ship = new Ship(entityId, x, y, arg1, arg2, arg3, arg4);
-                if (ship->isAlly()) {
-                    auto oldShip = (Ship *) Entity::findById((Entity **) allyShips.array, allyShips.count, entityId);
-                    if (oldShip == nullptr) {
-                        allyShips.add(ship);
-                        ships.add(ship);
-                    } else {
-                        oldShip->update(*ship);
-                        ships.add(oldShip);
-                    }
-                } else {
-                    enemyShips.add(ship);
+                List<Ship*, 3>* shipList = &allyShips;
+                if (!ship->isAlly()) {
+                    shipList = &enemyShips;
+                }
+                auto oldShip = (Ship *) Entity::findById((Entity **) shipList->array, shipList->count, entityId);
+                if (oldShip == nullptr) {
+                    shipList->add(ship);
                     ships.add(ship);
+                } else {
+                    oldShip->update(*ship);
+                    ships.add(oldShip);
                 }
             } else if (entityType == "BARREL") {
                 rumBarrels.array[rumBarrels.count].id = entityId;
@@ -1068,7 +1061,7 @@ public:
             for (int i = 0; i < rumBarrels.count; ++i) {
                 RumBarrel barrel = rumBarrels.array[i];
                 int dist = ship->distanceTo(barrel);
-                score -= dist / rumBarrels.count;
+                score -= dist / 10;
 
             }
 
