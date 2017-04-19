@@ -870,6 +870,7 @@ public:
     }
 
     void simulateTurn() {
+        this->computeEnemiesActions();
         this->moveCannonballs();
         this->decrementRum();
         this->applyActions();
@@ -882,14 +883,12 @@ public:
         rumBarrels.clear();
         mines.clear();
         cannonBalls.clear();
-
-        ships.clear();
     }
 
     high_resolution_clock::time_point parseInputs() {
         clearLists();
 
-        for (auto ship : allyShips) {
+        for (auto ship : ships) {
             ship->isDead = true;
         }
 
@@ -927,8 +926,11 @@ public:
                     ships.add(ship);
                 } else {
                     oldShip->update(*ship);
-                    ships.add(oldShip);
                 }
+                cerr << "ships" << ships.count << endl;
+                cerr << "allyShips" << allyShips.count << endl;
+                cerr << "enemyShips" << enemyShips.count << endl;
+
             } else if (entityType == "BARREL") {
                 rumBarrels.array[rumBarrels.count].id = entityId;
                 rumBarrels.array[rumBarrels.count].position.x = x;
@@ -967,6 +969,15 @@ public:
         for (auto ship : allyShips) {
             if (ship->isDead) continue;
 
+            if (!this->computeFire(ship)) {
+                this->computeRandomMove(ship);
+            }
+        }
+    }
+
+    void computeEnemiesActions() {
+        for (auto ship : enemyShips) {
+            if (ship->isDead) continue;
 
             if (!this->computeFire(ship)) {
                 this->computeRandomMove(ship);
@@ -985,7 +996,11 @@ public:
 
         int closestDist = 999;
         Coord closestCoord;
-        for (auto enemyShip : enemyShips) {
+        List<Ship*, 3> shipsList = allyShips;
+        if(ship->isAlly()) {
+            shipsList = enemyShips;
+        }
+        for (auto enemyShip : shipsList) {
             Coord enemyCoord = enemyShip->getPosition();
             int enemyDist = ship->bow().distanceTo(enemyCoord);
 
