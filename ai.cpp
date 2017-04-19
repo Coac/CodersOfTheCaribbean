@@ -310,8 +310,6 @@ public:
     int targetX;
     int targetY;
 
-    int speedSum;
-
     Ship(int id, int x, int y, int orientation, int speed, int health, int owner) : Entity(SHIP, id, x, y) {
         this->orientation = orientation;
         this->speed = speed;
@@ -320,7 +318,6 @@ public:
         this->cannonCooldown = 0;
         this->mineCooldown = 0;
         this->action = FASTER;
-        this->speedSum = 0;
     }
 
     friend ostream &operator<<(ostream &os, const Ship &ship) {
@@ -747,8 +744,6 @@ public:
 
                 ship->position = ship->newPosition;
                 checkCollisions(ship);
-
-                ship->speedSum += ship->speed;
             }
         }
     }
@@ -1070,18 +1065,14 @@ public:
             if (ship->isDead) continue;
             score += ship->health;
 
-            int closestBarrelDist = 999;
             for (int i = 0; i < rumBarrels.count; ++i) {
                 RumBarrel barrel = rumBarrels.array[i];
                 int dist = ship->distanceTo(barrel);
-                if (dist < closestBarrelDist) {
-                    closestBarrelDist = dist;
-                }
+                score -= dist / rumBarrels.count;
+
             }
-            score -= closestBarrelDist;
 
-
-            score += ship->speedSum / 2;
+            score += ship->speed * 2;
         }
 
         for (auto ship : enemyShips) {
@@ -1119,15 +1110,15 @@ GameState *full_random_strategy(GameState *state, high_resolution_clock::time_po
         baseState->computeRandomActions();
 
         GameState *endState = new GameState(*baseState);
-        for (auto ship : endState->ships) {
-            ship->speedSum = 0;
-        }
+
         endState->simulateTurn();
+        int score = endState->eval();
+
         for (int i = 0; i < 5; ++i) {
             endState->computeRandomActions();
             endState->simulateTurn();
+            score += endState->eval();
         }
-        int score = endState->eval();
         delete endState;
 
         if (score > bestScore) {
@@ -1140,9 +1131,8 @@ GameState *full_random_strategy(GameState *state, high_resolution_clock::time_po
 
         high_resolution_clock::time_point end = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(end - start).count();
-        if (duration > 45) {
-            cerr << "iteration:" << j << endl;
-
+        if (duration > 30) {
+//            cerr << "iteration:" << j << endl;
             delete state;
             return bestState;
         }
@@ -1168,9 +1158,9 @@ int main() {
 
         state->sendOutputs();
 
-        high_resolution_clock::time_point end = high_resolution_clock::now();
-        auto duration = duration_cast<milliseconds>(end - start).count();
-        cerr << "[Time] " << duration << " ms";
+//        high_resolution_clock::time_point end = high_resolution_clock::now();
+//        auto duration = duration_cast<milliseconds>(end - start).count();
+//        cerr << "[Time] " << duration << " ms";
 
 //#ifdef DEBUG_SHIPS
 //        cerr << "[Ally ships]" << endl;
