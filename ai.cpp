@@ -373,6 +373,7 @@ public:
 
     bool newBowIntersect(List<Ship *, 6> ships) {
         for (auto other : ships) {
+            if(other->isDead) continue;
             if (this != other && newBowIntersect(other)) {
                 return true;
             }
@@ -392,6 +393,7 @@ public:
 
     bool newPositionsIntersect(List<Ship *, 6> ships) {
         for (auto other : ships) {
+            if(other->isDead) continue;
             if (this != other && newPositionsIntersect(other)) {
                 return true;
             }
@@ -599,10 +601,7 @@ public:
     }
 
     void decrementRum() {
-        for (auto ship : allyShips) {
-            ship->damage(1);
-        }
-        for (auto ship : enemyShips) {
+        for (auto ship : ships) {
             ship->damage(1);
         }
     }
