@@ -577,6 +577,7 @@ public:
     }
 
     void moveCannonballs() {
+        cannonBallExplosions.clear();
         for (int i = 0; i < cannonBalls.count; ++i) {
             CannonBall ball = cannonBalls.array[i];
 
@@ -994,6 +995,7 @@ public:
             shipsList = enemyShips;
         }
         for (auto enemyShip : shipsList) {
+            if(enemyShip->isDead) continue;
             Coord enemyCoord = enemyShip->getPosition();
             int enemyDist = ship->bow().distanceTo(enemyCoord);
 
