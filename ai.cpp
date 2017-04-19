@@ -569,11 +569,8 @@ public:
     }
 
     ~GameState() {
-        for (int i = 0; i < enemyShips.count; ++i) {
-            delete this->enemyShips.array[i];
-        }
-        for (int i = 0; i < allyShips.count; ++i) {
-            delete this->allyShips.array[i];
+        for (int i = 0; i < ships.count; ++i) {
+            delete this->ships.array[i];
         }
     }
 
@@ -951,11 +948,7 @@ public:
     }
 
     void decrementCooldown() {
-        for (auto ship : allyShips) {
-            ship->decrementCooldown();
-        }
-
-        for (auto ship : enemyShips) {
+        for (auto ship : ships) {
             ship->decrementCooldown();
         }
     }
