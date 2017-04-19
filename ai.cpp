@@ -916,7 +916,7 @@ public:
 
             if (entityType == "SHIP") {
                 Ship *ship = new Ship(entityId, x, y, arg1, arg2, arg3, arg4);
-                List<Ship*, 3>* shipList = &allyShips;
+                List<Ship *, 3> *shipList = &allyShips;
                 if (!ship->isAlly()) {
                     shipList = &enemyShips;
                 }
@@ -927,10 +927,6 @@ public:
                 } else {
                     oldShip->update(*ship);
                 }
-                cerr << "ships" << ships.count << endl;
-                cerr << "allyShips" << allyShips.count << endl;
-                cerr << "enemyShips" << enemyShips.count << endl;
-
             } else if (entityType == "BARREL") {
                 rumBarrels.array[rumBarrels.count].id = entityId;
                 rumBarrels.array[rumBarrels.count].position.x = x;
@@ -968,10 +964,7 @@ public:
     void computeRandomActions() {
         for (auto ship : allyShips) {
             if (ship->isDead) continue;
-
-            if (!this->computeFire(ship)) {
-                this->computeRandomMove(ship);
-            }
+            this->computeRandomMove(ship);
         }
     }
 
@@ -980,13 +973,22 @@ public:
             if (ship->isDead) continue;
 
             if (!this->computeFire(ship)) {
-                this->computeRandomMove(ship);
+                ship->action = static_cast<Action>(rand() % FIRE);
             }
         }
     }
 
     void computeRandomMove(Ship *ship) {
-        ship->action = static_cast<Action>(rand() % FIRE);
+        if(!ship->isCannonOnCd()) {
+            ship->action = static_cast<Action>(rand() % MOVE);
+            if(ship->action == Action::FIRE) {
+                if(!computeFire(ship)) {
+                    ship->action = static_cast<Action>(rand() % FIRE);
+                }
+            }
+        } else {
+            ship->action = static_cast<Action>(rand() % FIRE);
+        }
     }
 
     bool computeFire(Ship *ship) {
@@ -996,8 +998,8 @@ public:
 
         int closestDist = 999;
         Coord closestCoord;
-        List<Ship*, 3> shipsList = allyShips;
-        if(ship->isAlly()) {
+        List<Ship *, 3> shipsList = allyShips;
+        if (ship->isAlly()) {
             shipsList = enemyShips;
         }
         for (auto enemyShip : shipsList) {
@@ -1081,6 +1083,9 @@ public:
             }
 
             score += ship->speed * 2;
+            if (ship->speed == 0) {
+                score -= 2;
+            }
         }
 
         for (auto ship : enemyShips) {
