@@ -324,6 +324,7 @@ public:
     int newOrientation;
     int speed;
     int health;
+    int initialHealth;
     int owner;
     int cannonCooldown;
     int mineCooldown;
@@ -331,6 +332,7 @@ public:
     Coord newBowCoordinate;
     Coord newSternCoordinate;
     bool isDead = false;
+    bool justDied = false;
 
     Action action;
     int targetX;
@@ -340,6 +342,7 @@ public:
         this->orientation = orientation;
         this->speed = speed;
         this->health = health;
+        this->initialHealth = health;
         this->owner = owner;
         this->cannonCooldown = 0;
         this->mineCooldown = 0;
@@ -370,6 +373,7 @@ public:
         if (health <= 0) {
             health = 0;
             isDead = true;
+            justDied = true;
         }
     }
 
@@ -909,7 +913,30 @@ public:
         }
     }
 
+    void updateInitialRum() {
+        for (auto ship : ships) {
+            ship->initialHealth = ship->health;
+        }
+    }
+
+    void createDroppedRum() {
+        for (auto ship : ships) {
+            if (ship->health <= 0 && ship->justDied) {
+                int reward = min(REWARD_RUM_BARREL_VALUE, ship->initialHealth);
+                if (reward > 0) {
+                    rumBarrels.array[rumBarrels.count].id = 987;
+                    rumBarrels.array[rumBarrels.count].position.x = ship->position.x;
+                    rumBarrels.array[rumBarrels.count].position.y = ship->position.y;
+                    rumBarrels.array[rumBarrels.count].health = reward;
+                    ++rumBarrels.count;
+                }
+            }
+            ship->justDied = false;
+        }
+    }
+
     void simulateTurn() {
+        this->updateInitialRum();
         this->computeEnemiesActions();
         this->moveCannonballs();
         this->decrementRum();
@@ -917,6 +944,7 @@ public:
         this->moveShips();
         this->rotateShips();
         this->explodeShips();
+        this->createDroppedRum();
     }
 
     void clearLists() {
