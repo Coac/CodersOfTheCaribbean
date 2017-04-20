@@ -1008,7 +1008,7 @@ public:
             if (ship->isDead) continue;
 
             if (!this->computeFire(ship)) {
-                ship->action = static_cast<Action>(rand() % FIRE);
+                ship->action = FASTER;
             }
         }
     }
@@ -1115,10 +1115,9 @@ public:
                 RumBarrel barrel = rumBarrels.array[i];
                 int dist = ship->distanceTo(barrel);
                 score -= dist / 10;
-
             }
 
-            score += ship->speed * 2;
+            score += ship->speed;
             if (ship->speed == 0) {
                 score -= 2;
             }
@@ -1127,6 +1126,7 @@ public:
         for (auto ship : enemyShips) {
             if (ship->isDead) continue;
             score -= ship->health;
+            score -= ship->speed;
         }
 
         return score;
@@ -1180,7 +1180,7 @@ GameState *full_random_strategy(GameState *state, high_resolution_clock::time_po
 
         auto end = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(end - start).count();
-        if (duration > 45) {
+        if (duration > 40) {
 //            cerr << "iteration:" << j << endl;
             delete state;
             return bestState;
