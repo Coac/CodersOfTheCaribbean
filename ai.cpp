@@ -318,6 +318,11 @@ public:
         this->cannonCooldown = 0;
         this->mineCooldown = 0;
         this->action = FASTER;
+
+        newPosition.x = -999;
+        newBowCoordinate.x = -999;
+        newSternCoordinate.x = -999;
+
     }
 
     friend ostream &operator<<(ostream &os, const Ship &ship) {
@@ -366,7 +371,7 @@ public:
     }
 
     bool newBowIntersect(Ship *other) {
-        return newBowCoordinate.x != -1 && newBowCoordinate.y != -1 &&
+        return newBowCoordinate.x != -999 &&
                (newBowCoordinate.equals(other->newBowCoordinate) || newBowCoordinate.equals(other->newPosition)
                 || newBowCoordinate.equals(other->newSternCoordinate));
     }
@@ -382,10 +387,10 @@ public:
     }
 
     bool newPositionsIntersect(Ship *other) {
-        bool sternCollision = newSternCoordinate.x != -1 && (newSternCoordinate.equals(other->newBowCoordinate)
-                                                             || newSternCoordinate.equals(other->newPosition) ||
-                                                             newSternCoordinate.equals(other->newSternCoordinate));
-        bool centerCollision = newPosition.x != -1 &&
+        bool sternCollision = newSternCoordinate.x != -999 && (newSternCoordinate.equals(other->newBowCoordinate)
+                                                               || newSternCoordinate.equals(other->newPosition) ||
+                                                               newSternCoordinate.equals(other->newSternCoordinate));
+        bool centerCollision = newPosition.x != -999 &&
                                (newPosition.equals(other->newBowCoordinate) || newPosition.equals(other->newPosition)
                                 || newPosition.equals(other->newSternCoordinate));
         return newBowIntersect(other) || sternCollision || centerCollision;
