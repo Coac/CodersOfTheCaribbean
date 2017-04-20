@@ -18,27 +18,26 @@ using namespace std::chrono;
 #define DEBUG_SHIPS
 #define PRINT_TIME
 
-const int MAP_WIDTH = 23;
-const int MAP_HEIGHT = 21;
-const int COOLDOWN_CANNON = 2;
-const int COOLDOWN_MINE = 5;
-const int INITIAL_SHIP_HEALTH = 100;
-const int MAX_SHIP_HEALTH = 100;
-const int MAX_SHIP_SPEED = 2;
-const int MAX_SHIPS = 3;
-const int MAX_MINES = 10;
-const int MIN_RUM_BARRELS = 10;
-const int MAX_RUM_BARRELS = 26;
-const int MIN_RUM_BARREL_VALUE = 10;
-const int MAX_RUM_BARREL_VALUE = 20;
-const int REWARD_RUM_BARREL_VALUE = 30;
-const int MINE_VISIBILITY_RANGE = 5;
-const int FIRE_DISTANCE_MAX = 10;
-const int LOW_DAMAGE = 25;
-const int HIGH_DAMAGE = 50;
-const int MINE_DAMAGE = 25;
-const int NEAR_MINE_DAMAGE = 10;
-
+constexpr int MAP_WIDTH = 23;
+constexpr int MAP_HEIGHT = 21;
+constexpr int COOLDOWN_CANNON = 2;
+constexpr int COOLDOWN_MINE = 5;
+constexpr int INITIAL_SHIP_HEALTH = 100;
+constexpr int MAX_SHIP_HEALTH = 100;
+constexpr int MAX_SHIP_SPEED = 2;
+constexpr int MAX_SHIPS = 3;
+constexpr int MAX_MINES = 10;
+constexpr int MIN_RUM_BARRELS = 10;
+constexpr int MAX_RUM_BARRELS = 26;
+constexpr int MIN_RUM_BARREL_VALUE = 10;
+constexpr int MAX_RUM_BARREL_VALUE = 20;
+constexpr int REWARD_RUM_BARREL_VALUE = 30;
+constexpr int MINE_VISIBILITY_RANGE = 5;
+constexpr int FIRE_DISTANCE_MAX = 10;
+constexpr int LOW_DAMAGE = 25;
+constexpr int HIGH_DAMAGE = 50;
+constexpr int MINE_DAMAGE = 25;
+constexpr int NEAR_MINE_DAMAGE = 10;
 
 class RumBarrel;
 
@@ -1125,7 +1124,7 @@ GameState *full_random_strategy(GameState *state, high_resolution_clock::time_po
         endState->simulateTurn();
         int score = endState->eval();
 
-        for (int i = 0; i < 5; ++i) {
+        for (int i = 0; i < DEPTH; ++i) {
             endState->computeRandomActions();
             endState->simulateTurn();
             score += endState->eval();
@@ -1142,7 +1141,7 @@ GameState *full_random_strategy(GameState *state, high_resolution_clock::time_po
 
         auto end = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(end - start).count();
-        if (duration > 30) {
+        if (duration > 45) {
 //            cerr << "iteration:" << j << endl;
             delete state;
             return bestState;
