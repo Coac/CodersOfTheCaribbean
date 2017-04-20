@@ -18,6 +18,9 @@ using namespace std::chrono;
 #define DEBUG_SHIPS
 #define PRINT_TIME
 
+//================================================================================
+// Constants
+//================================================================================
 constexpr int MAP_WIDTH = 23;
 constexpr int MAP_HEIGHT = 21;
 constexpr int COOLDOWN_CANNON = 2;
@@ -39,8 +42,12 @@ constexpr int HIGH_DAMAGE = 50;
 constexpr int MINE_DAMAGE = 25;
 constexpr int NEAR_MINE_DAMAGE = 10;
 
+
 class RumBarrel;
 
+//================================================================================
+// List
+//================================================================================
 template<typename T, int N>
 class List {
 public:
@@ -75,6 +82,9 @@ public:
 
 };
 
+//================================================================================
+// Enums
+//================================================================================
 enum EntityType {
     SHIP, BARREL, MINE, CANNONBALL, NONE
 };
@@ -83,6 +93,9 @@ enum Action {
     FASTER, SLOWER, PORT, STARBOARD, FIRE, MOVE
 };
 
+//================================================================================
+// CubeCoordinate
+//================================================================================
 class CubeCoordinate {
 public:
     int x;
@@ -115,6 +128,9 @@ int CubeCoordinate::directions[6][3] = {{1,  -1, 0},
                                         {-1, 0,  +1},
                                         {0,  -1, +1}};
 
+//================================================================================
+// Coord
+//================================================================================
 class Coord {
 public:
     int x;
@@ -215,6 +231,9 @@ int Coord::DIRECTIONS_ODD[6][2] = {{1,  0},
                                    {0,  1},
                                    {1,  1}};
 
+//================================================================================
+// Entity
+//================================================================================
 class Entity {
 public:
     int id;
@@ -291,6 +310,9 @@ public:
     }
 };
 
+//================================================================================
+// Ship
+//================================================================================
 class Ship : public Entity {
 public:
     int orientation;
@@ -377,7 +399,7 @@ public:
 
     bool newBowIntersect(List<Ship *, 6> ships) {
         for (auto other : ships) {
-            if(other->isDead) continue;
+            if (other->isDead) continue;
             if (this != other && newBowIntersect(other)) {
                 return true;
             }
@@ -397,7 +419,7 @@ public:
 
     bool newPositionsIntersect(List<Ship *, 6> ships) {
         for (auto other : ships) {
-            if(other->isDead) continue;
+            if (other->isDead) continue;
             if (this != other && newPositionsIntersect(other)) {
                 return true;
             }
@@ -484,6 +506,9 @@ public:
     }
 };
 
+//================================================================================
+// RumBarrel
+//================================================================================
 class RumBarrel : public Entity {
 public:
     int health;
@@ -498,6 +523,9 @@ public:
     }
 };
 
+//================================================================================
+// Mine
+//================================================================================
 class Mine : public Entity {
 public:
     Mine() : Entity() {
@@ -508,6 +536,9 @@ public:
     }
 };
 
+//================================================================================
+// CannonBall
+//================================================================================
 class CannonBall : public Entity {
 public:
     CannonBall() : Entity() {
@@ -525,6 +556,9 @@ public:
     }
 };
 
+//================================================================================
+// GameState
+//================================================================================
 class GameState {
 public:
     List<RumBarrel, MAX_RUM_BARRELS> rumBarrels;
@@ -975,10 +1009,10 @@ public:
     }
 
     void computeRandomMove(Ship *ship) {
-        if(!ship->isCannonOnCd()) {
+        if (!ship->isCannonOnCd()) {
             ship->action = static_cast<Action>(rand() % MOVE);
-            if(ship->action == Action::FIRE) {
-                if(!computeFire(ship)) {
+            if (ship->action == Action::FIRE) {
+                if (!computeFire(ship)) {
                     ship->action = static_cast<Action>(rand() % FIRE);
                 }
             }
@@ -999,7 +1033,7 @@ public:
             shipsList = enemyShips;
         }
         for (auto enemyShip : shipsList) {
-            if(enemyShip->isDead) continue;
+            if (enemyShip->isDead) continue;
             Coord enemyCoord = enemyShip->getPosition();
             int enemyDist = ship->bow().distanceTo(enemyCoord);
 
@@ -1152,6 +1186,9 @@ GameState *full_random_strategy(GameState *state, high_resolution_clock::time_po
     return bestState;
 }
 
+//================================================================================
+// Main
+//================================================================================
 int main() {
 
     GameState *state = new GameState();
