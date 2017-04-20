@@ -19,7 +19,7 @@ using namespace std::chrono;
 #define PRINT_TIME
 
 //================================================================================
-// Constants
+// Engine Constants
 //================================================================================
 constexpr int MAP_WIDTH = 23;
 constexpr int MAP_HEIGHT = 21;
@@ -41,6 +41,11 @@ constexpr int LOW_DAMAGE = 25;
 constexpr int HIGH_DAMAGE = 50;
 constexpr int MINE_DAMAGE = 25;
 constexpr int NEAR_MINE_DAMAGE = 10;
+
+//================================================================================
+// AI Constants
+//================================================================================
+constexpr int DEPTH = 5;
 
 
 class RumBarrel;
