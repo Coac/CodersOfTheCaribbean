@@ -582,8 +582,10 @@ public:
 
     List<Coord, 100> cannonBallExplosions;
 
-    GameState() {
+    int turn;
 
+    GameState() {
+        turn = 0;
     }
 
     GameState(GameState const &state) {
@@ -945,6 +947,7 @@ public:
         this->rotateShips();
         this->explodeShips();
         this->createDroppedRum();
+        ++turn;
     }
 
     void clearLists() {
@@ -1044,7 +1047,13 @@ public:
     void computeRandomMove(Ship *ship) {
         if (!ship->isCannonOnCd()) {
             ship->action = static_cast<Action>(rand() % MOVE);
-            if (ship->action == Action::FIRE) {
+
+            if (ship->speed == 0 && ship->action == SLOWER) {
+                ship->action = Action::FIRE;
+                if (!computeFire(ship)) {
+                    ship->action = static_cast<Action>(rand() % SLOWER);
+                }
+            } else if (ship->action == Action::FIRE) {
                 if (!computeFire(ship)) {
                     ship->action = static_cast<Action>(rand() % FIRE);
                 }
@@ -1143,6 +1152,7 @@ public:
                 RumBarrel barrel = rumBarrels.array[i];
                 int dist = ship->distanceTo(barrel);
                 score -= dist / 10;
+
             }
 
             score += ship->speed;
@@ -1160,6 +1170,7 @@ public:
         return score;
     }
 
+
 //    void computeActions() {
 //        for (auto ship : allyShips) {
 //            if (ship->isDead) continue;
@@ -1171,6 +1182,7 @@ public:
 //    }
 
     void sendOutputs() {
+        ++turn;
         for (auto ship : allyShips) {
             if (ship->isDead) continue;
 
