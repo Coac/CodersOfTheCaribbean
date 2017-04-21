@@ -787,53 +787,67 @@ public:
                 if (ship->isDead) continue;
 
                 ship->position = ship->newPosition;
-                checkCollisions(ship);
             }
+            checkCollisions();
         }
     }
 
-    void checkCollisions(Ship *ship) {
-        Coord bow = ship->bow();
-        Coord stern = ship->stern();
-        Coord center = ship->position;
+    void checkCollisions() {
+        for (auto ship : ships) {
+            if (ship->isDead) continue;
 
-        // Collision with the barrels
-        for (int i = 0; i < rumBarrels.count; ++i) {
-            RumBarrel barrel = rumBarrels.array[i];
-            if (barrel.position.equals(bow) || barrel.position.equals(stern) || barrel.position.equals(center)) {
-                ship->heal(barrel.health);
+            Coord bow = ship->bow();
+            Coord stern = ship->stern();
+            Coord center = ship->position;
+
+            // Collision with the barrels
+            for (int i = 0; i < rumBarrels.count; ++i) {
+                RumBarrel barrel = rumBarrels.array[i];
+                if (barrel.position.equals(bow) || barrel.position.equals(stern) || barrel.position.equals(center)) {
+                    ship->heal(barrel.health);
 
 #ifdef DEBUG_SIMU
-                cerr << endl;
-                cerr << "Bow x:" << bow.x << " y:" << bow.y << endl;
-                cerr << "Stern x:" << stern.x << " y:" << stern.y << endl;
-                cerr << "Center x:" << center.x << " y:" << center.y << endl;
-                cerr << "Barrel health:" << barrel.health << " x:" << barrel.position.x << " y:" << barrel.position.y
-                     << " victim:" << ship->id << endl;
-                cerr << endl;
+                    cerr << endl;
+                    cerr << "Bow x:" << bow.x << " y:" << bow.y << endl;
+                    cerr << "Stern x:" << stern.x << " y:" << stern.y << endl;
+                    cerr << "Center x:" << center.x << " y:" << center.y << endl;
+                    cerr << "Barrel health:" << barrel.health << " x:" << barrel.position.x << " y:" << barrel.position.y
+                         << " victim:" << ship->id << endl;
+                    cerr << endl;
 #endif
-                rumBarrels.removeAt(i);
-                --i;
+                    rumBarrels.removeAt(i);
+                    --i;
+                }
             }
-        }
 
-        // Collision with the mines
-        for (int i = 0; i < mines.count; ++i) {
-            Mine mine = mines.array[i];
-            if (mine.position.equals(bow) || mine.position.equals(stern) || mine.position.equals(center)) {
-                ship->damage(MINE_DAMAGE);
+            // Collision with the mines
+            for (int i = 0; i < mines.count; ++i) {
+                Mine mine = mines.array[i];
+                if (mine.position.equals(bow) || mine.position.equals(stern) || mine.position.equals(center)) {
+                    ship->damage(MINE_DAMAGE);
 #ifdef DEBUG_SIMU
-                cerr << endl;
-                cerr << "Bow x:" << bow.x << " y:" << bow.y << endl;
-                cerr << "Stern x:" << stern.x << " y:" << stern.y << endl;
-                cerr << "Center x:" << center.x << " y:" << center.y << endl;
-                cerr << "MineExplosion x:" << mine.position.x << " y:" << mine.position.y << " victim:"
-                     << ship->id << " dmg:" << MINE_DAMAGE << endl;
-                cerr << endl;
+                    cerr << endl;
+                    cerr << "Bow x:" << bow.x << " y:" << bow.y << endl;
+                    cerr << "Stern x:" << stern.x << " y:" << stern.y << endl;
+                    cerr << "Center x:" << center.x << " y:" << center.y << endl;
+                    cerr << "MineExplosion x:" << mine.position.x << " y:" << mine.position.y << " victim:"
+                         << ship->id << " dmg:" << MINE_DAMAGE << endl;
+                    cerr << endl;
 #endif
-                // TODO : APROX DAMAGE
-                mines.removeAt(i);
-                --i;
+                    for (auto other : ships) {
+                        if (other->isDead) continue;
+                        if (other == ship) continue;
+
+                        if (mine.position.distanceTo(ship->position) == 1 ||
+                            mine.position.distanceTo(ship->stern()) == 1 ||
+                            mine.position.distanceTo(ship->bow()) == 1) {
+                            ship->damage(NEAR_MINE_DAMAGE);
+                        }
+                    }
+
+                    mines.removeAt(i);
+                    --i;
+                }
             }
         }
     }
@@ -877,9 +891,8 @@ public:
         for (auto ship : ships) {
             if (ship->isDead) continue;
             ship->orientation = ship->newOrientation;
-            checkCollisions(ship);
-
         }
+        checkCollisions();
     }
 
     void explodeShips() {
@@ -915,6 +928,47 @@ public:
         }
     }
 
+    void explodeMines() {
+        for (int i = 0; i < cannonBallExplosions.count; ++i) {
+            Coord ball = cannonBallExplosions.array[i];
+            for (int j = 0; j < mines.count; ++j) {
+                Mine mine = mines.array[j];
+                if (mine.position.equals(ball)) {
+                    cannonBallExplosions.removeAt(i);
+                    mines.removeAt(j);
+                    --i;
+
+                    for (auto ship : ships) {
+                        if (ship->isDead) continue;
+
+                        if (mine.position.distanceTo(ship->position) == 1 ||
+                            mine.position.distanceTo(ship->stern()) == 1 ||
+                            mine.position.distanceTo(ship->bow()) == 1) {
+                            ship->damage(NEAR_MINE_DAMAGE);
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    void explodeBarrels() {
+        for (int i = 0; i < cannonBallExplosions.count; ++i) {
+            Coord ball = cannonBallExplosions.array[i];
+            for (int j = 0; j < rumBarrels.count; ++j) {
+                RumBarrel barrel = rumBarrels.array[j];
+                if (barrel.position.equals(ball)) {
+                    cannonBallExplosions.removeAt(i);
+                    rumBarrels.removeAt(j);
+                    --i;
+                    break;
+                }
+            }
+        }
+    }
+
+
     void updateInitialRum() {
         for (auto ship : ships) {
             ship->initialHealth = ship->health;
@@ -946,6 +1000,8 @@ public:
         this->moveShips();
         this->rotateShips();
         this->explodeShips();
+        this->explodeMines();
+        this->explodeBarrels();
         this->createDroppedRum();
         ++turn;
     }
