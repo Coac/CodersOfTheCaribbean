@@ -1145,11 +1145,11 @@ public:
             }
         }
 
-        for (auto ship : enemyShips) {
-            if (ship->isDead) continue;
-            score -= ship->health;
-            score -= ship->speed;
-        }
+//        for (auto ship : enemyShips) {
+//            if (ship->isDead) continue;
+//            score -= ship->health;
+//            score -= ship->speed;
+//        }
 
         return score;
     }
