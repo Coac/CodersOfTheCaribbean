@@ -576,7 +576,7 @@ public:
     List<Ship *, 3> enemyShips;
     List<Ship *, 6> ships;
 
-    List<Mine, MAX_MINES> mines;
+    List<Mine, 50> mines;
 
     List<CannonBall, 100> cannonBalls;
 
