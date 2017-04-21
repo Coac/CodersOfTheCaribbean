@@ -14,10 +14,6 @@ using namespace std::chrono;
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
 
-//#define DEBUG_SIMU
-#define DEBUG_SHIPS
-#define PRINT_TIME
-
 //================================================================================
 // Engine Constants
 //================================================================================
@@ -269,40 +265,6 @@ public:
 
     int distanceTo(Entity entity) {
         return this->position.distanceTo(entity.getPosition());
-    }
-
-    Entity *getClosestEntity(Entity **entities, int entityCount, int *closestDistance = nullptr) {
-        int min = 999;
-        Entity *closest = nullptr;
-        for (int i = 0; i < entityCount; ++i) {
-            Entity *entity = entities[i];
-            int dist = this->distanceTo(*entity);
-            if (dist < min) {
-                min = dist;
-                closest = entity;
-            }
-        }
-        if (closestDistance) {
-            *closestDistance = min;
-        }
-        return closest;
-    }
-
-    static Entity *getClosestEntity(Entity **entities, int entityCount, Coord coord, int *closestDistance = nullptr) {
-        int min = 999;
-        Entity *closest = nullptr;
-        for (int i = 0; i < entityCount; ++i) {
-            Entity *entity = entities[i];
-            int dist = coord.distanceTo(entity->getPosition());
-            if (dist < min) {
-                min = dist;
-                closest = entity;
-            }
-        }
-        if (closestDistance) {
-            *closestDistance = min;
-        }
-        return closest;
     }
 
     static Entity *findById(Entity **entities, int entityCount, int id) {
@@ -638,12 +600,6 @@ public:
                 ball.remainingTurns--;
             }
 
-#ifdef DEBUG_SIMU
-            cerr << "CannonBall x:" << ball.position.x << " y:" << ball.position.y << " remainingTurns:"
-                 << ball.remainingTurns << endl;
-#endif
-
-
             if (ball.remainingTurns == 0) {
                 cannonBallExplosions.add(ball.position);
             }
@@ -806,15 +762,6 @@ public:
                 if (barrel.position.equals(bow) || barrel.position.equals(stern) || barrel.position.equals(center)) {
                     ship->heal(barrel.health);
 
-#ifdef DEBUG_SIMU
-                    cerr << endl;
-                    cerr << "Bow x:" << bow.x << " y:" << bow.y << endl;
-                    cerr << "Stern x:" << stern.x << " y:" << stern.y << endl;
-                    cerr << "Center x:" << center.x << " y:" << center.y << endl;
-                    cerr << "Barrel health:" << barrel.health << " x:" << barrel.position.x << " y:" << barrel.position.y
-                         << " victim:" << ship->id << endl;
-                    cerr << endl;
-#endif
                     rumBarrels.removeAt(i);
                     --i;
                 }
@@ -825,15 +772,7 @@ public:
                 Mine mine = mines.array[i];
                 if (mine.position.equals(bow) || mine.position.equals(stern) || mine.position.equals(center)) {
                     ship->damage(MINE_DAMAGE);
-#ifdef DEBUG_SIMU
-                    cerr << endl;
-                    cerr << "Bow x:" << bow.x << " y:" << bow.y << endl;
-                    cerr << "Stern x:" << stern.x << " y:" << stern.y << endl;
-                    cerr << "Center x:" << center.x << " y:" << center.y << endl;
-                    cerr << "MineExplosion x:" << mine.position.x << " y:" << mine.position.y << " victim:"
-                         << ship->id << " dmg:" << MINE_DAMAGE << endl;
-                    cerr << endl;
-#endif
+
                     for (auto other : ships) {
                         if (other->isDead) continue;
                         if (other == ship) continue;
@@ -906,22 +845,11 @@ public:
                     ship->damage(LOW_DAMAGE);
                     cannonBallExplosions.removeAt(i);
                     --i;
-#ifdef DEBUG_SIMU
-
-                    cerr << "cannonBallexplosion x:" << position.x << " y:" << position.y << " hitted:" << ship->id
-                         << " dmg:" << LOW_DAMAGE << endl;
-#endif
-
                     break;
                 } else if (position.equals(ship->position)) {
                     ship->damage(HIGH_DAMAGE);
                     cannonBallExplosions.removeAt(i);
                     --i;
-#ifdef DEBUG_SIMU
-                    cerr << "cannonBallexplosion x:" << position.x << " y:" << position.y << " hitted:" << ship->id
-                         << " dmg:" << HIGH_DAMAGE << endl;
-#endif
-
                     break;
                 }
             }
@@ -1300,25 +1228,9 @@ int main() {
 
         state->decrementCooldown();
 
-        // state->computeActions();
-
         state = full_random_strategy(state, start);
 
         state->sendOutputs();
-
-//        high_resolution_clock::time_point end = high_resolution_clock::now();
-//        auto duration = duration_cast<milliseconds>(end - start).count();
-//        cerr << "[Time] " << duration << " ms";
-
-//#ifdef DEBUG_SHIPS
-//        cerr << "[Ally ships]" << endl;
-//        for (auto ship : bestState->allyShips) {
-//            if (ship->isDead) continue;
-//            cerr << "id:" << ship->id << " x:" << ship->position.x << " y:" << ship->position.y << " health:"
-//                 << ship->health << " isDead:" << ship->isDead
-//                 << " orientation:" << ship->orientation << endl;
-//        }
-//#endif
 
     }
 }
