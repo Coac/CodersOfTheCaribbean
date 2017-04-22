@@ -217,6 +217,8 @@ public:
     int distanceTo(Coord dst) {
         return this->toCubeCoordinate().distanceTo(dst.toCubeCoordinate());
     }
+
+    friend ostream &operator<<(ostream &os, const Coord &coord);
 };
 
 int Coord::DIRECTIONS_EVEN[6][2] = {{1,  0},
@@ -231,6 +233,11 @@ int Coord::DIRECTIONS_ODD[6][2] = {{1,  0},
                                    {-1, 0},
                                    {0,  1},
                                    {1,  1}};
+
+ostream &operator<<(ostream &os, const Coord &coord) {
+    os << "x: " << coord.x << " y: " << coord.y;
+    return os;
+}
 
 //================================================================================
 // Entity
