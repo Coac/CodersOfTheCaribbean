@@ -488,7 +488,7 @@ public:
                 break;
             case Action::PUTMINE:
                 cout << "MINE Neat!" << endl;
-                cannonCooldown = 5;
+                mineCooldown = 5;
                 break;
         }
     }
