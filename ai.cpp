@@ -617,18 +617,17 @@ public:
     void moveCannonballs() {
         cannonBallExplosions.clear();
         for (int i = 0; i < cannonBalls.count; ++i) {
-            CannonBall ball = cannonBalls.array[i];
 
-            if (ball.remainingTurns == 0) {
+            if (cannonBalls.array[i].remainingTurns == 0) {
                 cannonBalls.removeAt(i);
                 --i;
                 continue;
-            } else if (ball.remainingTurns > 0) {
-                ball.remainingTurns--;
+            } else if (cannonBalls.array[i].remainingTurns > 0) {
+                cannonBalls.array[i].remainingTurns--;
             }
 
-            if (ball.remainingTurns == 0) {
-                cannonBallExplosions.add(ball.position);
+            if (cannonBalls.array[i].remainingTurns == 0) {
+                cannonBallExplosions.add(cannonBalls.array[i].position);
             }
         }
     }
