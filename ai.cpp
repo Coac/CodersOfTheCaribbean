@@ -473,7 +473,7 @@ public:
                 cout << "PORT I wanna be a pirate!" << endl;
                 break;
             case Action::FIRE:
-                cout << "FIRE Neat" << this->targetX << " " << this->targetY << endl;
+                cout << "FIRE " << this->targetX << " " << this->targetY << endl;
                 cannonCooldown = 2;
                 break;
             case Action::MOVE:
