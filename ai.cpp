@@ -42,6 +42,7 @@ constexpr int NEAR_MINE_DAMAGE = 10;
 // AI Constants
 //================================================================================
 constexpr int DEPTH = 5;
+constexpr int ENEMY_DEPTH = 4;
 
 
 class RumBarrel;
@@ -947,7 +948,6 @@ public:
 
     void simulateTurn() {
         this->updateInitialRum();
-        this->computeEnemiesActions();
         this->moveCannonballs();
         this->decrementRum();
         this->applyActions();
@@ -1044,6 +1044,13 @@ public:
         }
     }
 
+    void computeRandomEnemyActions() {
+        for (auto ship : enemyShips) {
+            if (ship->isDead) continue;
+            this->computeRandomMove(ship);
+        }
+    }
+
     void computeEnemiesActions() {
         for (auto ship : enemyShips) {
             if (ship->isDead) continue;
@@ -1055,26 +1062,18 @@ public:
         ship->action = static_cast<Action>(rand() % FIRE);
     }
 
-    void replaceActions() {
+    void replaceActions(List<GameState*, ENEMY_DEPTH> enemyStates) {
         for(auto ship : allyShips) {
             if(ship->isDead) continue;
             if(ship->action != WAIT && (ship->speed != 0 || ship->action != SLOWER)) continue;
 
-            if(!computeMine(ship, 4)) {
-                computeFire(ship);
+            if (!computeMine(ship, enemyStates)) {
+                computeFire(ship, enemyStates);
             }
         }
     }
 
-    void replaceActionsMine() {
-        for(auto ship : allyShips) {
-            if(ship->isDead) continue;
-
-            computeMine(ship, 1);
-        }
-    }
-
-    bool computeMine(Ship *ship, int turn) {
+    bool computeMine(Ship *ship, List<GameState*, ENEMY_DEPTH> enemyStates) {
         if (ship->isMineOnCd()) {
             return false;
         }
@@ -1102,22 +1101,12 @@ public:
             }
         }
 
-
-
-        List<Ship *, 3> shipsList = allyShips;
-        if (ship->isAlly()) {
-            shipsList = enemyShips;
-        }
-        for (auto enemyShip : shipsList) {
-            if (enemyShip->isDead) continue;
-
-            const int nbTurn = turn;
-            for (int i = 1; i <= nbTurn; ++i) {
-                Coord centralPos = enemyShip->getPosition().neighbor(enemyShip->orientation, i * enemyShip->speed);
-                Coord sternPos = centralPos.neighbor((enemyShip->orientation + 3) % 6);
-                Coord bowPos = centralPos.neighbor(enemyShip->orientation);
-
-                Coord coords[3] = {centralPos, sternPos, bowPos};
+        int turn = 1;
+        for(auto state : enemyStates) {
+            if(turn > 3) return false;
+            for(auto enemyShip : state->enemyShips) {
+                if (enemyShip->isDead) continue;
+                Coord coords[3] = {enemyShip->position, enemyShip->stern(), enemyShip->bow()};
                 for (int j = 0; j < 3; ++j) {
                     Coord coord = coords[j];
                     if(coord.equals(target)) {
@@ -1125,68 +1114,43 @@ public:
                         return true;
                     }
                 }
-            }
 
+            }
+            ++turn;
         }
+
         return false;
     }
 
-    bool computeFire(Ship *ship) {
+    bool computeFire(Ship *ship, List<GameState*, ENEMY_DEPTH> enemyStates) {
         if (ship->isCannonOnCd()) {
             return false;
         }
-
         int closestDist = 999;
         Coord closestCoord;
-        List<Ship *, 3> shipsList = allyShips;
-        if (ship->isAlly()) {
-            shipsList = enemyShips;
-        }
-        for (auto enemyShip : shipsList) {
-            if (enemyShip->isDead) continue;
 
-            Coord targetCoord;
-            int targetDist = 10000;
-            if (enemyShip->speed == 0) {
-                Coord coords[3] = {enemyShip->getPosition(), enemyShip->stern(), enemyShip->bow()};
-                for (int i = 0; i < 3; ++i) {
-                    Coord coord = coords[i];
-                    int dist = ship->bow().distanceTo(coord);
-                    int travelTime = (int) (1 + round(dist / 3.0));
-                    if(travelTime < 4) {
-                        targetDist = dist;
-                        targetCoord = coord;
-                        break;
-                    }
-                }
-            } else {
-                const int nbTurn = 4;
-                for (int i = 1; i <= nbTurn; ++i) {
-                    Coord centralPos = enemyShip->getPosition().neighbor(enemyShip->orientation, i * enemyShip->speed);
-                    Coord sternPos = centralPos.neighbor((enemyShip->orientation + 3) % 6);
-                    Coord bowPos = centralPos.neighbor(enemyShip->orientation);
-
-                    Coord coords[3] = {centralPos, sternPos, bowPos};
-                    for (int j = 0; j < 3; ++j) {
-                        Coord coord = coords[j];
-                        if (!coord.isInsideMap()) break;
-                        int distance = ship->bow().distanceTo(coord);
-                        int travelTime = (int) (1 + round(distance / 3.0));
-                        if (travelTime / enemyShip->speed == i) {
-                            targetDist = distance;
-                            targetCoord = coord;
-                            break;
+        int turn = 1;
+        for(auto state : enemyStates) {
+            for(auto enemyShip : state->enemyShips) {
+                if (enemyShip->isDead) continue;
+                Coord coords[3] = {enemyShip->position, enemyShip->stern(), enemyShip->bow()};
+                for (int j = 0; j < 3; ++j) {
+                    Coord coord = coords[j];
+                    if (!coord.isInsideMap()) break;
+                    int distance = ship->bow().distanceTo(coord);
+                    int travelTime = (int) (1 + round(distance / 3.0));
+                    if (travelTime == turn) {
+                        if (closestDist > distance) {
+                            closestCoord = coord;
+                            closestDist = distance;
                         }
                     }
                 }
-            }
 
-
-            if (closestDist > targetDist) {
-                closestCoord = targetCoord;
-                closestDist = targetDist;
             }
+            ++turn;
         }
+
         if (closestDist > 10) {
             return false;
         }
@@ -1195,7 +1159,6 @@ public:
             ship->fire(closestCoord.getX(), closestCoord.getY());
             return true;
         }
-
 
         return false;
     }
@@ -1241,8 +1204,37 @@ public:
 
     int eval() {
         int score = 0;
-
         for (auto ship : allyShips) {
+            if (ship->isDead) continue;
+            score += ship->health;
+
+            for (int i = 0; i < rumBarrels.count; ++i) {
+                RumBarrel barrel = rumBarrels.array[i];
+                int dist = ship->distanceTo(barrel);
+                score -= dist / 10;
+            }
+
+            if(rumBarrels.count == 0) {
+                for (auto allyShip : allyShips) {
+                    if (ship->isDead || allyShip == ship) continue;
+                    int dist = ship->distanceTo(*allyShip);
+                    score -= dist / 10;
+                }
+            }
+
+            score += ship->speed;
+            if (ship->speed == 0) {
+                score -= 2;
+            }
+        }
+
+        return score;
+    }
+
+    int enemyEval() {
+        int score = 0;
+
+        for (auto ship : enemyShips) {
             if (ship->isDead) continue;
             score += ship->health * 3;
 
@@ -1277,6 +1269,7 @@ GameState *full_random_strategy(GameState *state, high_resolution_clock::time_po
     for (int j = 0; j < 100000; ++j) {
         GameState *baseState = new GameState(*state);
         baseState->computeRandomActions();
+        baseState->computeEnemiesActions();
 
         GameState *endState = new GameState(*baseState);
 
@@ -1285,6 +1278,7 @@ GameState *full_random_strategy(GameState *state, high_resolution_clock::time_po
 
         for (int i = 0; i < DEPTH; ++i) {
             endState->computeRandomActions();
+            endState->computeEnemiesActions();
             endState->simulateTurn();
             score += endState->eval();
         }
@@ -1311,6 +1305,47 @@ GameState *full_random_strategy(GameState *state, high_resolution_clock::time_po
     return bestState;
 }
 
+List<GameState*, ENEMY_DEPTH> getEnemyPromisingStates(GameState *state) {
+    int bestScore = -99999;
+    List<GameState*, ENEMY_DEPTH> bestStates;
+    List<GameState*, ENEMY_DEPTH> states;
+
+    for (int j = 0; j < 200; ++j) {
+        states.clear();
+
+        GameState *nextState = new GameState(*state);
+        nextState->computeRandomEnemyActions();
+        nextState->simulateTurn();
+        states.add(nextState);
+        int score = nextState->enemyEval();
+        for (int i = 0; i < ENEMY_DEPTH - 1; ++i) {
+            nextState = new GameState(*nextState);
+            nextState->computeRandomEnemyActions();
+            nextState->simulateTurn();
+            states.add(nextState);
+            score += nextState->enemyEval();
+        }
+
+        if (score > bestScore) {
+            for(auto oldState : bestStates) {
+                delete oldState;
+            }
+            bestStates.clear();
+
+            bestStates = states;
+            bestScore = score;
+            states.clear();
+        } else {
+            for(auto oldState : states) {
+                delete oldState;
+            }
+            states.clear();
+        }
+    }
+
+    return bestStates;
+}
+
 //================================================================================
 // Main
 //================================================================================
@@ -1326,19 +1361,24 @@ int main() {
 
         state = full_random_strategy(state, start);
 
-        state->replaceActions();
-        state->replaceActionsMine();
+        List<GameState*, ENEMY_DEPTH> enemyStates = getEnemyPromisingStates(state);
+
+        state->replaceActions(enemyStates);
+
+        for(auto enemyState : enemyStates) {
+            delete enemyState;
+        }
 
         state->sendOutputs();
+
 //        GameState *newState = new GameState(*state);
 //        newState->simulateTurn();
 //        for (auto ship : newState->allyShips) {
 //            if (ship->isDead) continue;
-//
 //            cerr << *ship << endl;
-//
 //        }
-
+//        cerr << newState->eval() << endl;
+//        delete newState;
     }
 }
 
