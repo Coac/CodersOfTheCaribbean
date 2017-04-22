@@ -1051,13 +1051,21 @@ public:
             if(ship->isDead) continue;
             if(ship->action != WAIT && (ship->speed != 0 || ship->action != SLOWER)) continue;
 
-            if(!computeMine(ship)) {
+            if(!computeMine(ship, 4)) {
                 computeFire(ship);
             }
         }
     }
 
-    bool computeMine(Ship *ship) {
+    void replaceActionsMine() {
+        for(auto ship : allyShips) {
+            if(ship->isDead) continue;
+
+            computeMine(ship, 1);
+        }
+    }
+
+    bool computeMine(Ship *ship, int turn) {
         if (ship->isMineOnCd()) {
             return false;
         }
@@ -1094,7 +1102,7 @@ public:
         for (auto enemyShip : shipsList) {
             if (enemyShip->isDead) continue;
 
-            const int nbTurn = 3;
+            const int nbTurn = turn;
             for (int i = 1; i <= nbTurn; ++i) {
                 Coord centralPos = enemyShip->getPosition().neighbor(enemyShip->orientation, i * enemyShip->speed);
                 Coord sternPos = centralPos.neighbor((enemyShip->orientation + 3) % 6);
@@ -1224,15 +1232,15 @@ public:
 
     int eval() {
         int score = 0;
+
         for (auto ship : allyShips) {
             if (ship->isDead) continue;
-            score += ship->health;
+            score += ship->health * 3;
 
             for (int i = 0; i < rumBarrels.count; ++i) {
                 RumBarrel barrel = rumBarrels.array[i];
                 int dist = ship->distanceTo(barrel);
                 score -= dist / 10;
-
             }
 
             score += ship->speed;
@@ -1310,8 +1318,17 @@ int main() {
         state = full_random_strategy(state, start);
 
         state->replaceActions();
+        state->replaceActionsMine();
 
         state->sendOutputs();
+//        GameState *newState = new GameState(*state);
+//        newState->simulateTurn();
+//        for (auto ship : newState->allyShips) {
+//            if (ship->isDead) continue;
+//
+//            cerr << *ship << endl;
+//
+//        }
 
     }
 }
