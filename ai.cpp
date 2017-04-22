@@ -91,7 +91,7 @@ enum EntityType {
 };
 
 enum Action {
-    FASTER, SLOWER, PORT, STARBOARD, FIRE, MOVE
+    FASTER, SLOWER, PORT, STARBOARD, WAIT, FIRE, MOVE
 };
 
 //================================================================================
@@ -461,26 +461,28 @@ public:
     void sendOutput() {
         switch (this->action) {
             case Action::FASTER:
-                cout << "FASTER" << endl;
+                cout << "FASTER I’m a mighty pirate!" << endl;
                 break;
             case Action::SLOWER:
-                cout << "SLOWER" << endl;
+                cout << "SLOWER a Three-Headed Monkey!" << endl;
                 break;
             case Action::STARBOARD:
-                cout << "STARBOARD" << endl;
+                cout << "STARBOARD Look behind you" << endl;
                 break;
             case Action::PORT:
-                cout << "PORT" << endl;
+                cout << "PORT I wanna be a pirate!" << endl;
                 break;
             case Action::FIRE:
-                cout << "FIRE " << this->targetX << " " << this->targetY << endl;
+                cout << "FIRE Neat" << this->targetX << " " << this->targetY << endl;
                 cannonCooldown = 2;
                 break;
             case Action::MOVE:
                 cout << "MOVE " << this->targetX << " " << this->targetY << endl;
                 break;
+            case Action::WAIT:
+                cout << "WAIT NOOOOOOOOOOOO!" << endl;
+                break;
         }
-
     }
 };
 
@@ -1028,29 +1030,23 @@ public:
     void computeEnemiesActions() {
         for (auto ship : enemyShips) {
             if (ship->isDead) continue;
-
-            if (!this->computeFire(ship)) {
-                ship->action = FASTER;
-            }
+            ship->action = WAIT;
         }
     }
 
     void computeRandomMove(Ship *ship) {
-        if (!ship->isCannonOnCd()) {
-            ship->action = static_cast<Action>(rand() % MOVE);
+        ship->action = static_cast<Action>(rand() % FIRE);
+    }
 
-            if (ship->speed == 0 && ship->action == SLOWER) {
-                ship->action = Action::FIRE;
-                if (!computeFire(ship)) {
-                    ship->action = static_cast<Action>(rand() % SLOWER);
-                }
-            } else if (ship->action == Action::FIRE) {
-                if (!computeFire(ship)) {
-                    ship->action = static_cast<Action>(rand() % FIRE);
-                }
+    void replaceActions() {
+        for(auto ship : allyShips) {
+            if(ship->isDead) continue;
+            if(ship->action != WAIT && (ship->speed != 0 || ship->action != SLOWER)) continue;
+
+
+            if (!ship->isCannonOnCd()) {
+                computeFire(ship);
             }
-        } else {
-            ship->action = static_cast<Action>(rand() % FIRE);
         }
     }
 
@@ -1265,6 +1261,8 @@ int main() {
         state->decrementCooldown();
 
         state = full_random_strategy(state, start);
+
+        state->replaceActions();
 
         state->sendOutputs();
 
