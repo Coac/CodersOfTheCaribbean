@@ -1060,18 +1060,47 @@ public:
         }
         for (auto enemyShip : shipsList) {
             if (enemyShip->isDead) continue;
-            Coord enemyCoord = enemyShip->getPosition();
-            int enemyDist = ship->bow().distanceTo(enemyCoord);
 
-            if (enemyShip->speed > 0) {
-                enemyCoord = enemyShip->getPosition().neighbor(enemyShip->getOrientation(),
-                                                               enemyShip->speed + (enemyDist / 3));
-                enemyDist = ship->bow().distanceTo(enemyCoord);
+            Coord targetCoord;
+            int targetDist = 10000;
+            if (enemyShip->speed == 0) {
+                Coord coords[3] = {enemyShip->getPosition(), enemyShip->stern(), enemyShip->bow()};
+                for (int i = 0; i < 3; ++i) {
+                    Coord coord = coords[i];
+                    int dist = ship->bow().distanceTo(coord);
+                    int travelTime = (int) (1 + round(dist / 3.0));
+                    if(travelTime < 4) {
+                        targetDist = dist;
+                        targetCoord = coord;
+                        break;
+                    }
+                }
+            } else {
+                const int nbTurn = 4;
+                for (int i = 1; i <= nbTurn; ++i) {
+                    Coord centralPos = enemyShip->getPosition().neighbor(enemyShip->orientation, i * enemyShip->speed);
+                    Coord sternPos = centralPos.neighbor((enemyShip->orientation + 3) % 6);
+                    Coord bowPos = centralPos.neighbor(enemyShip->orientation);
+
+                    Coord coords[3] = {centralPos, sternPos, bowPos};
+                    for (int j = 0; j < 3; ++j) {
+                        Coord coord = coords[j];
+                        if (!coord.isInsideMap()) break;
+                        int distance = ship->bow().distanceTo(coord);
+                        int travelTime = (int) (1 + round(distance / 3.0));
+                        if (travelTime / enemyShip->speed == i) {
+                            targetDist = distance;
+                            targetCoord = coord;
+                            break;
+                        }
+                    }
+                }
             }
 
-            if (closestDist > enemyDist) {
-                closestCoord = enemyCoord;
-                closestDist = enemyDist;
+
+            if (closestDist > targetDist) {
+                closestCoord = targetCoord;
+                closestDist = targetDist;
             }
         }
         if (closestDist > 10) {
