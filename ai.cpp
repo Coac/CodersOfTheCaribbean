@@ -91,7 +91,7 @@ enum EntityType {
 };
 
 enum Action {
-    FASTER, SLOWER, PORT, STARBOARD, WAIT, FIRE, MOVE
+    FASTER, SLOWER, PORT, STARBOARD, WAIT, FIRE, PUTMINE, MOVE
 };
 
 //================================================================================
@@ -436,6 +436,10 @@ public:
         this->targetY = y;
     }
 
+    void mine() {
+        this->action = Action::PUTMINE;
+    }
+
     void faster() {
         this->action = Action::FASTER;
     }
@@ -481,6 +485,10 @@ public:
                 break;
             case Action::WAIT:
                 cout << "WAIT NOOOOOOOOOOOO!" << endl;
+                break;
+            case Action::PUTMINE:
+                cout << "MINE Neat!" << endl;
+                cannonCooldown = 5;
                 break;
         }
     }
@@ -1043,11 +1051,67 @@ public:
             if(ship->isDead) continue;
             if(ship->action != WAIT && (ship->speed != 0 || ship->action != SLOWER)) continue;
 
-
-            if (!ship->isCannonOnCd()) {
+            if(!computeMine(ship)) {
                 computeFire(ship);
             }
         }
+    }
+
+    bool computeMine(Ship *ship) {
+        if (ship->isMineOnCd()) {
+            return false;
+        }
+
+        Coord target = ship->stern().neighbor((ship->orientation + 3) % 6);
+
+        if(!target.isInsideMap()) return false;
+
+        for(auto other : ships) {
+            if (other->isDead) continue;
+            if(other == ship) continue;
+
+            if(target.equals(other->position) || target.equals(other->stern()) || target.equals(other->bow())) {
+                return false;
+            }
+        }
+        for(auto barrel : rumBarrels) {
+            if(target.equals(barrel.position)) {
+                return false;
+            }
+        }
+        for(auto mine : mines) {
+            if(target.equals(mine.position)) {
+                return false;
+            }
+        }
+
+
+
+        List<Ship *, 3> shipsList = allyShips;
+        if (ship->isAlly()) {
+            shipsList = enemyShips;
+        }
+        for (auto enemyShip : shipsList) {
+            if (enemyShip->isDead) continue;
+
+            const int nbTurn = 3;
+            for (int i = 1; i <= nbTurn; ++i) {
+                Coord centralPos = enemyShip->getPosition().neighbor(enemyShip->orientation, i * enemyShip->speed);
+                Coord sternPos = centralPos.neighbor((enemyShip->orientation + 3) % 6);
+                Coord bowPos = centralPos.neighbor(enemyShip->orientation);
+
+                Coord coords[3] = {centralPos, sternPos, bowPos};
+                for (int j = 0; j < 3; ++j) {
+                    Coord coord = coords[j];
+                    if(coord.equals(target)) {
+                        ship->mine();
+                        return true;
+                    }
+                }
+            }
+
+        }
+        return false;
     }
 
     bool computeFire(Ship *ship) {
