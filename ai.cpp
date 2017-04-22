@@ -282,6 +282,11 @@ public:
         }
         return nullptr;
     }
+
+    friend ostream &operator<<(ostream &os, const Entity &entity) {
+        os << "position: " << entity.position;
+        return os;
+    }
 };
 
 //================================================================================
@@ -533,6 +538,11 @@ public:
         type = CANNONBALL;
         ownerEntityId = -1;
         remainingTurns = 999;
+    }
+
+    friend ostream &operator<<(ostream &os, const CannonBall &ball) {
+        os << static_cast<const Entity &>(ball) << " remainingTurns: " << ball.remainingTurns;
+        return os;
     }
 
     int ownerEntityId;
