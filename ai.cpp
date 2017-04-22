@@ -1241,25 +1241,8 @@ public:
             }
         }
 
-//        for (auto ship : enemyShips) {
-//            if (ship->isDead) continue;
-//            score -= ship->health;
-//            score -= ship->speed;
-//        }
-
         return score;
     }
-
-
-//    void computeActions() {
-//        for (auto ship : allyShips) {
-//            if (ship->isDead) continue;
-//
-//            if (!this->computeFire(ship)) {
-//                this->computeMove(ship);
-//            }
-//        }
-//    }
 
     void sendOutputs() {
         ++turn;
