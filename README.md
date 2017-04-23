@@ -44,12 +44,19 @@ Distance to ally ship
 Enemy position behind stern
 ```
 
-
 ### Replace actions
-The actions computed by the full random strategy are only move related.
+The actions computed by the full random strategy are only movement related.
 `WAIT` actions and `SLOWER` with speed already equals to `0` are replaced with `FIRE` and `MINE`. 
-The latter are computed with heuristic function which simulate enemy moves with also a full random strategy with his
+The latter are computed by a heuristic function which simulate enemy moves with also a full random strategy with his
 own `eval` function.
+
+### Improvements
+- Compute the `FIRE` and `MINE` actions in the random strategy
+- Use something more like genetic algorithm to converge to the optimal solution.
+- Find the right hyperparameters (a lot empirical testing)
+- Better game engine
+- Use all C++ tricks to improve overall performance
+
 
 ## Misc
 Since Codingame does not use the gcc optimization, the STL is very slow. So, I used simple `List` implementation. 
