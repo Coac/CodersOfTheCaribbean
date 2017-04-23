@@ -197,8 +197,8 @@ public:
     }
 
     Coord neighbor(int orientation, int distance) {
-        Coord coord = this->neighbor(orientation);
-        for (int i = 0; i < distance - 1; ++i) {
+        Coord coord = *this;
+        for (int i = 0; i < distance; ++i) {
             coord = coord.neighbor(orientation);
         }
         return coord;
@@ -1219,6 +1219,24 @@ public:
                     if (ship->isDead || allyShip == ship) continue;
                     int dist = ship->distanceTo(*allyShip);
                     score -= dist / 10;
+                }
+            }
+
+            for(auto enemyShip : enemyShips) {
+                if(enemyShip->isDead) continue;
+
+                Coord minePos1 = enemyShip->stern().neighbor(enemyShip->orientation + 3 % 6, enemyShip->speed);
+                Coord minePos2 = enemyShip->stern().neighbor(enemyShip->orientation + 3 % 6, enemyShip->speed + 1);
+                Coord minePos3 = enemyShip->stern().neighbor(enemyShip->orientation + 3 % 6, enemyShip->speed + 2);
+
+                Coord minePosArray[3] = {minePos1, minePos2, minePos3};
+
+                for (int i = 0; i < 3; ++i) {
+                    Coord minePos = minePosArray[i];
+                    if(minePos.equals(ship->position) || minePos.equals(ship->stern()) || minePos.equals(ship->bow())) {
+                        score -= 10;
+                        break;
+                    }
                 }
             }
 
