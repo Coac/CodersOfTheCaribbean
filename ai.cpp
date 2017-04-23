@@ -805,10 +805,10 @@ public:
                         if (other->isDead) continue;
                         if (other == ship) continue;
 
-                        if (mine.position.distanceTo(ship->position) == 1 ||
-                            mine.position.distanceTo(ship->stern()) == 1 ||
-                            mine.position.distanceTo(ship->bow()) == 1) {
-                            ship->damage(NEAR_MINE_DAMAGE);
+                        if (mine.position.distanceTo(other->position) == 1 ||
+                            mine.position.distanceTo(other->stern()) == 1 ||
+                            mine.position.distanceTo(other->bow()) == 1) {
+                            other->damage(NEAR_MINE_DAMAGE);
                         }
                     }
 
