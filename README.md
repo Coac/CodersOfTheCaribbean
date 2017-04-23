@@ -6,6 +6,51 @@
 fire on the closest enemy when ability is ready.
 - Full random : get random actions and simulate game with depth 5, and play the actions with the highest score
 
+## Rule based strategy
+The rule based strategy was used to get out the Bronze league. It's no more used since its efficiency
+is a lot lower than the full random strategy.
+
+## Full Random strategy
+
+### Evaluation function : 
+
+#### Make the crews survive !
+```
+Ally ships health
+```
+
+#### Take theses water of life
+```
+Rum barrel distance
+```
+
+#### Flash MacQueen
+```
+Ally ships speed
+```
+
+#### "Suicide" behaviour
+```
+Max ally ship health
+```
+
+#### Make sure the dropped rum will get by an ally ship 
+```
+Distance to ally ship
+```
+
+#### Avoid potential dropped mine
+```
+Enemy position behind stern
+```
+
+
+### Replace actions
+The actions computed by the full random strategy are only move related.
+`WAIT` actions and `SLOWER` with speed already equals to `0` are replaced with `FIRE` and `MINE`. 
+The latter are computed with heuristic function which simulate enemy moves with also a full random strategy with his
+own `eval` function.
+
 ## Misc
 Since Codingame does not use the gcc optimization, the STL is very slow. So, I used simple `List` implementation. 
 It has `begin` and `end` iterators, so it is compatible with the C++11 for loop. 
