@@ -308,6 +308,7 @@ public:
     Coord newSternCoordinate;
     bool isDead = false;
     bool justDied = false;
+    bool shotSuicidalBall = false;
 
     Action action;
     int targetX;
@@ -1065,12 +1066,83 @@ public:
     void replaceActions(List<GameState*, ENEMY_DEPTH> enemyStates) {
         for(auto ship : allyShips) {
             if(ship->isDead) continue;
-            if(ship->action != WAIT && (ship->speed != 0 || ship->action != SLOWER)) continue;
 
-            if (!computeMine(ship, enemyStates)) {
-                computeFire(ship, enemyStates);
+            if(!suicide(ship)) {
+
+                if(ship->action != WAIT && (ship->speed != 0 || ship->action != SLOWER)) continue;
+
+                if (!computeMine(ship, enemyStates)) {
+                    computeFire(ship, enemyStates);
+                }
             }
         }
+    }
+
+    bool needSuicide(Ship * ship) {
+        if(ship->isDead) return false;
+        if(ship->shotSuicidalBall) return false;
+
+        if(ship->health > 25) {
+            return false;
+        }
+        int maxHealth = 0;
+        Ship * maxHealthShip = nullptr;
+
+        for (auto allyShip : allyShips) {
+            if(allyShip->isDead) continue;
+
+            if(allyShip->health > maxHealth) {
+                maxHealth = allyShip->health;
+                maxHealthShip = allyShip;
+            }
+        }
+
+        if(maxHealthShip == ship) {
+            return false;
+        }
+
+        int closestAllyDist = 999;
+        Ship * closestAllyShip = nullptr;
+        for (auto other : allyShips) {
+            if(other->isDead || ship == other) continue;
+
+            int dist = ship->distanceTo(*other);
+            if(dist < closestAllyDist) {
+                closestAllyDist = dist;
+                closestAllyShip = other;
+            }
+        }
+
+        int closestEnemyDist = 999;
+        for (auto other : enemyShips) {
+            if(other->isDead || ship == other) continue;
+
+            int dist = ship->distanceTo(*other);
+            if(dist < closestEnemyDist) {
+                closestEnemyDist = dist;
+            }
+        }
+        return closestAllyShip != nullptr && closestAllyDist <= 4 && closestEnemyDist >= 5;
+    }
+
+    bool suicide(Ship *ship) {
+        if (ship->isCannonOnCd()) {
+            return false;
+        }
+        if(needSuicide(ship)) {
+            ship->shotSuicidalBall = true;
+            if(ship->speed == 0) {
+                ship->fire(ship->position.x, ship->position.y);
+            } else {
+                Coord target = ship->stern().neighbor(ship->orientation, ship->speed*2);
+                if(!target.isInsideMap()) return false;
+                ship->fire(target.x, target.y);
+            }
+            cerr << "SUICIDEEEEEEEE" << endl;
+
+            return true;
+        }
+        return false;
     }
 
     bool computeMine(Ship *ship, List<GameState*, ENEMY_DEPTH> enemyStates) {
@@ -1204,9 +1276,15 @@ public:
 
     int eval() {
         int score = 0;
+        int maxHealth = 0;
         for (auto ship : allyShips) {
             if (ship->isDead) continue;
+
             score += ship->health;
+
+            if(maxHealth < ship->health) {
+                maxHealth = ship->health;
+            }
 
             for (int i = 0; i < rumBarrels.count; ++i) {
                 RumBarrel barrel = rumBarrels.array[i];
@@ -1245,6 +1323,7 @@ public:
                 score -= 2;
             }
         }
+        score += maxHealth * 2;
 
         return score;
     }
