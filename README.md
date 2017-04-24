@@ -58,6 +58,7 @@ own `eval` function.
 - Find the right hyperparameters (a lot empirical testing)
 - Better game engine
 - Use all C++ tricks to improve overall performance
+- Precompute distances and neighbor calculation
 
 
 ## Misc
