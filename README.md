@@ -52,7 +52,9 @@ own `eval` function.
 
 ### Improvements
 - Compute the `FIRE` and `MINE` actions in the random strategy
+- Compute enemies actions in the simulation
 - Use something more like genetic algorithm to converge to the optimal solution.
+- Use brute-force method when having enough time (1 ship left)
 - Find the right hyperparameters (a lot empirical testing)
 - Better game engine
 - Use all C++ tricks to improve overall performance
