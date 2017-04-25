@@ -69,5 +69,7 @@ The code can be improved using static allocation instead of using `new` and poin
 
 The code related to the engine is inspired a lot by the Codiname Java Referee.
 
+Ranked 26th with this bot
+
 
 
