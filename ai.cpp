@@ -1244,56 +1244,8 @@ public:
 
     int eval() {
         int score = 0;
-        int maxHealth = 0;
-        for (auto ship : allyShips) {
-            if (ship->isDead) continue;
-
-            score += ship->health;
-
-            if (maxHealth < ship->health) {
-                maxHealth = ship->health;
-            }
-
-            for (int i = 0; i < rumBarrels.count; ++i) {
-                RumBarrel barrel = rumBarrels.array[i];
-                int dist = ship->distanceTo(barrel);
-                score -= dist / 10;
-            }
-
-            if (rumBarrels.count == 0) {
-                for (auto allyShip : allyShips) {
-                    if (ship->isDead || allyShip == ship) continue;
-                    int dist = ship->distanceTo(*allyShip);
-                    score -= dist / 10;
-                }
-            }
-
-            for (auto enemyShip : enemyShips) {
-                if (enemyShip->isDead) continue;
-
-                Coord minePos1 = enemyShip->stern().neighbor(enemyShip->orientation + 3 % 6, enemyShip->speed);
-                Coord minePos2 = enemyShip->stern().neighbor(enemyShip->orientation + 3 % 6, enemyShip->speed + 1);
-                Coord minePos3 = enemyShip->stern().neighbor(enemyShip->orientation + 3 % 6, enemyShip->speed + 2);
-
-                Coord minePosArray[3] = {minePos1, minePos2, minePos3};
-
-                for (int i = 0; i < 3; ++i) {
-                    Coord minePos = minePosArray[i];
-                    if (minePos.equals(ship->position) || minePos.equals(ship->stern()) ||
-                        minePos.equals(ship->bow())) {
-                        score -= 10;
-                        break;
-                    }
-                }
-            }
-
-            score += ship->speed;
-            if (ship->speed == 0) {
-                score -= 2;
-            }
-        }
-        score += maxHealth * 2;
-
+        // Removed part to avoid copy pasta
+        // Read the README.md, there is a part for the eval function
         return score;
     }
 
