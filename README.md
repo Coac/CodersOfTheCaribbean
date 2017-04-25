@@ -71,5 +71,6 @@ The code related to the engine is inspired a lot by the Codiname Java Referee.
 
 Ranked 26th with this bot
 
-
+## Useful stuff
+- [Magus Brutaltester](https://github.com/dreignier/cg-brutaltester/)
 
